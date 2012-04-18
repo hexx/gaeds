@@ -23,6 +23,19 @@ object Datastore {
   def getCurrentTransaction() = service.getCurrentTransaction()
   def getCurrentTransaction(returnedIfNoTxn: Transaction) = service.getCurrentTransaction(returnedIfNoTxn)
 
+  def createMapper[T <: Mapper[T]: ClassManifest](entity: Entity): T = {
+    val concreteClass = implicitly[ClassManifest[T]].erasure
+    val mapper = concreteClass.newInstance.asInstanceOf[T]
+    for ((name, value) <- entity.getProperties.asScala) {
+      val field = concreteClass.getDeclaredField(name)
+      field.setAccessible(true)
+      field.set(mapper, Property(value))
+    }
+    mapper.key = Option(entity.getKey)
+    mapper.parentKey = Option(entity.getParent)
+    mapper
+  }
+
   case class FutureWrapper[T, U](underlying: Future[T], f: T => U) extends Future[U] {
     def	cancel(mayInterruptIfRunning: Boolean) = underlying.cancel(mayInterruptIfRunning)
     def get(): U = f(underlying.get())
@@ -105,19 +118,6 @@ object Datastore {
     new TypeSafeQuery(Option(txn), mapper, None, fetchOptions)
   def query[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, ancestorKey: Key, fetchOptions: FetchOptions) =
     new TypeSafeQuery(Some(txn), mapper, Some(ancestorKey), fetchOptions)
-
-  def createMapper[T <: Mapper[T]: ClassManifest](entity: Entity): T = {
-    val concreteClass = implicitly[ClassManifest[T]].erasure
-    val mapper = concreteClass.newInstance.asInstanceOf[T]
-    for ((name, value) <- entity.getProperties.asScala) {
-      val field = concreteClass.getDeclaredField(name)
-      field.setAccessible(true)
-      field.set(mapper, Property(value))
-    }
-    mapper.key = Option(entity.getKey)
-    mapper.parentKey = Option(entity.getParent)
-    mapper
-  }
 
   def transaction[T](block: => T): T = {
     val t = service.beginTransaction
@@ -289,6 +289,18 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
 
   def countEntities(): Int = prepare(false).countEntities(fetchOptions)
 
+  def prepare(keysOnly: Boolean) = {
+    txn match {
+      case Some(t) => Datastore.service.prepare(t, toQuery(keysOnly))
+      case None => Datastore.service.prepare(toQuery(keysOnly))
+    }
+  }
+
+  def reverse() = {
+    _reverse = !_reverse
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, !_reverse, filterPredicate, sortPredicate)
+  }
+
   def toQuery(keysOnly: Boolean) = {
     val query = ancestorKey match {
       case Some(k) => new Query(mapper.kind, k)
@@ -311,17 +323,5 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
       query.setKeysOnly()
     }
     query
-  }
-
-  def prepare(keysOnly: Boolean) = {
-    txn match {
-      case Some(t) => Datastore.service.prepare(t, toQuery(keysOnly))
-      case None => Datastore.service.prepare(toQuery(keysOnly))
-    }
-  }
-
-  def reverse() = {
-    _reverse = !_reverse
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, !_reverse, filterPredicate, sortPredicate)
   }
 }
