@@ -3,8 +3,11 @@ import org.scalatest.matchers.MustMatchers
 
 import java.util.Date
 
+import scala.collection.JavaConverters._
+
 import com.google.appengine.api.blobstore.BlobKey
 import com.google.appengine.api.datastore._
+import com.google.appengine.api.datastore.FetchOptions.Builder._
 import com.google.appengine.api.users.User
 import com.google.appengine.tools.development.testing.{ LocalDatastoreServiceTestConfig, LocalServiceTestHelper }
 
@@ -70,7 +73,6 @@ class Data(
 object Data extends Data
 
 class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
-
   def data =
     new Data(
       true,
@@ -146,10 +148,20 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     "basic" in {
       val d1 = data
       val k = d1.put
-      val d2 = Data.query.prepare.next
-      Data.query.prepare.size must be === 1
+      val d2 = Data.query.asIterator.next
+      Data.query.countEntities must be === 1
       Datastore.delete(k)
       d1 must be === d2
+    }
+    "QueryResult" in {
+      val ds = Seq(data, data, data)
+      Datastore.put(ds:_*)
+      val ite1 = Data.query.asQueryResultIterator(false)
+      val ite2 = Data.query.asIteratorWithCursorAndIndex
+      for ((e, (d, c, i)) <- ite1.asScala zip ite2) {
+        ite1.getCursor must be === c()
+        Data.fromEntity(e) must be === d
+      }
     }
   }
 }
