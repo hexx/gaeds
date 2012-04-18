@@ -12,7 +12,7 @@ import com.google.appengine.api.users.User
 import com.google.appengine.tools.development.testing.{ LocalDatastoreServiceTestConfig, LocalServiceTestHelper }
 
 import com.github.hexx.gaeds._
-import com.github.hexx.gaeds.Datastore._
+import com.github.hexx.gaeds.Property._
 
 object Util {
   def stringToByteArray(s: String) = s.toArray.map(_.toByte)

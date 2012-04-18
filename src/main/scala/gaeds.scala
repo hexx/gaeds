@@ -132,7 +132,24 @@ object Datastore {
       }
     }
   }
+}
 
+case class FilterPredicate[T](val property: Property[T], val operator: FilterOperator, val value: T*)
+case class SortPredicate(val property: Property[_], val direction: SortDirection)
+
+case class PropertyOperator[T: ClassManifest](property: Property[T]) {
+  def #<(v: T) = FilterPredicate(property, FilterOperator.LESS_THAN, v)
+  def #<=(v: T) = FilterPredicate(property, FilterOperator.LESS_THAN_OR_EQUAL, v)
+  def #==(v: T) = FilterPredicate(property, FilterOperator.EQUAL, v)
+  def #!=(v: T) = FilterPredicate(property, FilterOperator.NOT_EQUAL, v)
+  def #>(v: T) = FilterPredicate(property, FilterOperator.GREATER_THAN, v)
+  def #>=(v: T) = FilterPredicate(property, FilterOperator.GREATER_THAN_OR_EQUAL, v)
+  def in(v: T*) = FilterPredicate(property, FilterOperator.IN, v:_*)
+  def asc = SortPredicate(property, SortDirection.ASCENDING)
+  def desc = SortPredicate(property, SortDirection.DESCENDING)
+}
+
+object Property {
   implicit def propertyToValue[T](property: Property[T]): T = property.value
   implicit def shortBlobValueToProperty(value: ShortBlob) = Property(value)
   implicit def blobValueToProperty(value: Blob) = Property(value)
@@ -156,78 +173,13 @@ object Datastore {
   implicit def phoneNumberValueToProperty(value: PhoneNumber) = Property(value)
   implicit def stringValueToProperty(value: String) = Property(value)
   implicit def textValueToProperty(value: Text) = Property(value)
+
+  implicit def propertyToOperator[T: ClassManifest](property: Property[T]) = PropertyOperator(property)
 }
 
-class FilterPredicate[T](val property: Property[T], val operator: FilterOperator, val value: T*)
-class SortPredicate(val property: Property[_], val direction: SortDirection)
-
-class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
-    txn: Option[Transaction],
-    mapper: T,
-    ancestorKey: Option[Key],
-    fetchOptions: FetchOptions = FetchOptions.Builder.withDefaults,
-    var _reverse: Boolean = false,
-    filterPredicate: List[FilterPredicate[_]] = List(),
-    sortPredicate: List[SortPredicate] = List()) {
-  def addFilter(f: T => FilterPredicate[_]) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, f(mapper) :: filterPredicate, sortPredicate)
-  def addSort(f: T => SortPredicate) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate, f(mapper) :: sortPredicate)
-
-  def asEntityIterator(keysOnly: Boolean) = prepare(keysOnly).asIterator(fetchOptions).asScala
-  def asQueryResultIterator(keysOnly: Boolean) = prepare(keysOnly).asQueryResultIterator(fetchOptions)
-
-  def asIterator(): Iterator[T] = asEntityIterator(false).map(mapper.fromEntity(_))
-  def asKeysOnlyIterator(): Iterator[Key] = asEntityIterator(true).map(_.getKey)
-
-  def asIteratorWithCursorAndIndex(): Iterator[(T, () => Cursor, () => Seq[Index])] = {
-    val iterator = asQueryResultIterator(false)
-    iterator.asScala.map(entity => (mapper.fromEntity(entity), iterator.getCursor _, () => iterator.getIndexList.asScala.toSeq))
-  }
-  def asKeysOnlyIteratorWithCursorAndIndex(): Iterator[(Key, () => Cursor, () => Seq[Index])] = {
-    val iterator = asQueryResultIterator(true)
-    iterator.asScala.map(entity => (entity.getKey, iterator.getCursor _, () => iterator.getIndexList.asScala.toSeq))
-  }
-
-  def asSingle(): T = mapper.fromEntity(prepare(false).asSingleEntity)
-
-  def countEntities(): Int = prepare(false).countEntities(fetchOptions)
-
-  def toQuery(keysOnly: Boolean) = {
-    val query = ancestorKey match {
-      case Some(k) => new Query(mapper.kind, k)
-      case None => new Query(mapper.kind)
-    }
-    for (p <- filterPredicate) {
-      if (p.operator == FilterOperator.IN) {
-        query.addFilter(p.property.name, p.operator, p.value.asJava)
-      } else {
-        query.addFilter(p.property.name, p.operator, p.value(0))
-      }
-    }
-    for (p <- sortPredicate) {
-      query.addSort(p.property.name, p.direction)
-    }
-    if (_reverse) {
-      query.reverse()
-    }
-    if (keysOnly) {
-      query.setKeysOnly()
-    }
-    query
-  }
-
-  def prepare(keysOnly: Boolean) = {
-    txn match {
-      case Some(t) => Datastore.service.prepare(t, toQuery(keysOnly))
-      case None => Datastore.service.prepare(toQuery(keysOnly))
-    }
-  }
-
-  def reverse() = {
-    _reverse = !_reverse
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, !_reverse, filterPredicate, sortPredicate)
-  }
+case class Property[T: ClassManifest](var value: T) {
+  var name: String = _
+  override def toString = value.toString
 }
 
 abstract class Mapper[T <: Mapper[T]: ClassManifest] {
@@ -305,16 +257,71 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
   }
 }
 
-case class Property[T: ClassManifest](var value: T) {
-  var name: String = _
-  def #<(v: T) = new FilterPredicate(this, FilterOperator.LESS_THAN, v)
-  def #<=(v: T) = new FilterPredicate(this, FilterOperator.LESS_THAN_OR_EQUAL, v)
-  def #==(v: T) = new FilterPredicate(this, FilterOperator.EQUAL, v)
-  def #!=(v: T) = new FilterPredicate(this, FilterOperator.NOT_EQUAL, v)
-  def #>(v: T) = new FilterPredicate(this, FilterOperator.GREATER_THAN, v)
-  def #>=(v: T) = new FilterPredicate(this, FilterOperator.GREATER_THAN_OR_EQUAL, v)
-  def inOp(v: T*) = new FilterPredicate(this, FilterOperator.IN, v:_*)
-  def asc = new SortPredicate(this, SortDirection.ASCENDING)
-  def desc = new SortPredicate(this, SortDirection.DESCENDING)
-  override def toString = value.toString
+class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
+    txn: Option[Transaction],
+    mapper: T,
+    ancestorKey: Option[Key],
+    fetchOptions: FetchOptions = FetchOptions.Builder.withDefaults,
+    var _reverse: Boolean = false,
+    filterPredicate: List[FilterPredicate[_]] = List(),
+    sortPredicate: List[SortPredicate] = List()) {
+  def addFilter(f: T => FilterPredicate[_]) =
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, f(mapper) :: filterPredicate, sortPredicate)
+  def addSort(f: T => SortPredicate) =
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate, f(mapper) :: sortPredicate)
+
+  def asEntityIterator(keysOnly: Boolean) = prepare(keysOnly).asIterator(fetchOptions).asScala
+  def asQueryResultIterator(keysOnly: Boolean) = prepare(keysOnly).asQueryResultIterator(fetchOptions)
+
+  def asIterator(): Iterator[T] = asEntityIterator(false).map(mapper.fromEntity(_))
+  def asKeysOnlyIterator(): Iterator[Key] = asEntityIterator(true).map(_.getKey)
+
+  def asIteratorWithCursorAndIndex(): Iterator[(T, () => Cursor, () => Seq[Index])] = {
+    val iterator = asQueryResultIterator(false)
+    iterator.asScala.map(entity => (mapper.fromEntity(entity), iterator.getCursor _, () => iterator.getIndexList.asScala.toSeq))
+  }
+  def asKeysOnlyIteratorWithCursorAndIndex(): Iterator[(Key, () => Cursor, () => Seq[Index])] = {
+    val iterator = asQueryResultIterator(true)
+    iterator.asScala.map(entity => (entity.getKey, iterator.getCursor _, () => iterator.getIndexList.asScala.toSeq))
+  }
+
+  def asSingle(): T = mapper.fromEntity(prepare(false).asSingleEntity)
+
+  def countEntities(): Int = prepare(false).countEntities(fetchOptions)
+
+  def toQuery(keysOnly: Boolean) = {
+    val query = ancestorKey match {
+      case Some(k) => new Query(mapper.kind, k)
+      case None => new Query(mapper.kind)
+    }
+    for (p <- filterPredicate) {
+      if (p.operator == FilterOperator.IN) {
+        query.addFilter(p.property.name, p.operator, p.value.asJava)
+      } else {
+        query.addFilter(p.property.name, p.operator, p.value(0))
+      }
+    }
+    for (p <- sortPredicate) {
+      query.addSort(p.property.name, p.direction)
+    }
+    if (_reverse) {
+      query.reverse()
+    }
+    if (keysOnly) {
+      query.setKeysOnly()
+    }
+    query
+  }
+
+  def prepare(keysOnly: Boolean) = {
+    txn match {
+      case Some(t) => Datastore.service.prepare(t, toQuery(keysOnly))
+      case None => Datastore.service.prepare(toQuery(keysOnly))
+    }
+  }
+
+  def reverse() = {
+    _reverse = !_reverse
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, !_reverse, filterPredicate, sortPredicate)
+  }
 }
