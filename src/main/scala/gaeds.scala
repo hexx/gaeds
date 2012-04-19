@@ -150,7 +150,7 @@ case class PropertyOperator[T: ClassManifest](property: Property[T]) {
 }
 
 object Property {
-  implicit def propertyToValue[T](property: Property[T]): T = property.value
+  implicit def propertyToValue[T](property: Property[T]): T = property.__valueOfProperty
   implicit def shortBlobValueToProperty(value: ShortBlob) = Property(value)
   implicit def blobValueToProperty(value: Blob) = Property(value)
   implicit def categoryValueToProperty(value: Category) = Property(value)
@@ -177,9 +177,9 @@ object Property {
   implicit def propertyToOperator[T: ClassManifest](property: Property[T]) = PropertyOperator(property)
 }
 
-case class Property[T: ClassManifest](var value: T) {
-  var name: String = _
-  override def toString = value.toString
+case class Property[T: ClassManifest](var __valueOfProperty: T) {
+  var __nameOfProperty: String = _
+  override def toString = __valueOfProperty.toString
 }
 
 abstract class Mapper[T <: Mapper[T]: ClassManifest] {
@@ -231,7 +231,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
     }
     assert(properties.size != 0, "define fields with Property[T]")
     for (p <- properties) {
-      entity.setProperty(p.name, p.value)
+      entity.setProperty(p.__nameOfProperty, p.__valueOfProperty)
     }
     entity
   }
@@ -252,7 +252,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
 
   private def assignPropertyName() {
     for ((p, m) <- zipPropertyAndMethod) {
-      p.name = m.getName
+      p.__nameOfProperty = m.getName
     }
   }
 }
@@ -266,28 +266,33 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
     filterPredicate: List[FilterPredicate[_]] = List(),
     sortPredicate: List[SortPredicate] = List()) {
   def addFilter(f: T => FilterPredicate[_]) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, f(mapper) :: filterPredicate, sortPredicate)
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate :+ f(mapper), sortPredicate)
+  def filter(f: T => FilterPredicate[_]) = addFilter(f)
+
   def addSort(f: T => SortPredicate) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate, f(mapper) :: sortPredicate)
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate, sortPredicate :+ f(mapper))
+  def sort(f: T => SortPredicate) = addSort(f: T => SortPredicate)
 
   def asEntityIterator(keysOnly: Boolean) = prepare(keysOnly).asIterator(fetchOptions).asScala
   def asQueryResultIterator(keysOnly: Boolean) = prepare(keysOnly).asQueryResultIterator(fetchOptions)
 
   def asIterator(): Iterator[T] = asEntityIterator(false).map(mapper.fromEntity(_))
-  def asKeysOnlyIterator(): Iterator[Key] = asEntityIterator(true).map(_.getKey)
+  def asKeyIterator(): Iterator[Key] = asEntityIterator(true).map(_.getKey)
 
   def asIteratorWithCursorAndIndex(): Iterator[(T, () => Cursor, () => Seq[Index])] = {
     val iterator = asQueryResultIterator(false)
     iterator.asScala.map(entity => (mapper.fromEntity(entity), iterator.getCursor _, () => iterator.getIndexList.asScala.toSeq))
   }
-  def asKeysOnlyIteratorWithCursorAndIndex(): Iterator[(Key, () => Cursor, () => Seq[Index])] = {
+  def asKeyIteratorWithCursorAndIndex(): Iterator[(Key, () => Cursor, () => Seq[Index])] = {
     val iterator = asQueryResultIterator(true)
     iterator.asScala.map(entity => (entity.getKey, iterator.getCursor _, () => iterator.getIndexList.asScala.toSeq))
   }
 
-  def asSingle(): T = mapper.fromEntity(prepare(false).asSingleEntity)
+  def asSingleEntity(keysOnly: Boolean) = prepare(keysOnly).asSingleEntity
+  def asSingle(): T = mapper.fromEntity(asSingleEntity(false))
+  def asSingleKey(): Key = asSingleEntity(true).getKey
 
-  def countEntities(): Int = prepare(false).countEntities(fetchOptions)
+  def count() = prepare(false).countEntities(fetchOptions)
 
   def prepare(keysOnly: Boolean) = {
     txn match {
@@ -308,13 +313,13 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
     }
     for (p <- filterPredicate) {
       if (p.operator == FilterOperator.IN) {
-        query.addFilter(p.property.name, p.operator, p.value.asJava)
+        query.addFilter(p.property.__nameOfProperty, p.operator, p.value.asJava)
       } else {
-        query.addFilter(p.property.name, p.operator, p.value(0))
+        query.addFilter(p.property.__nameOfProperty, p.operator, p.value(0))
       }
     }
     for (p <- sortPredicate) {
-      query.addSort(p.property.name, p.direction)
+      query.addSort(p.property.__nameOfProperty, p.direction)
     }
     if (_reverse) {
       query.reverse()
