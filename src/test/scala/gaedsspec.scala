@@ -27,12 +27,9 @@ class Data(
     val category: Property[Category],
     val date: Property[Date],
     val email: Property[Email],
-    val float: Property[Float],
     val double: Property[Double],
     val geoPt: Property[GeoPt],
     val user: Property[User],
-    val short: Property[Short],
-    val int: Property[Int],
     val long: Property[Long],
     val blobKey: Property[BlobKey],
     val keyValue: Property[Key],
@@ -52,12 +49,9 @@ class Data(
       new Category(""),
       new Date,
       new Email(""),
-      0,
-      0,
+      0D,
       new GeoPt(0F, 0F),
       new User("", ""),
-      0.toShort,
-      0,
       0L,
       new BlobKey(""),
       KeyFactory.createKey("default", 1L),
@@ -68,9 +62,97 @@ class Data(
       new PhoneNumber(""),
       "",
       new Text(""))
+  override def toString() = {
+    boolean.toString +
+    shortBlob.toString +
+    blob.toString +
+    category.toString +
+    date.toString +
+    email.toString +
+    double.toString +
+    geoPt.toString +
+    user.toString +
+    long.toString +
+    blobKey.toString +
+    keyValue.toString +
+    link.toString +
+    imHandle.toString +
+    postalAddress.toString +
+    rating.toString +
+    phoneNumber.toString +
+    string.toString +
+    text.toString
+  }
 }
 
 object Data extends Data
+
+class SeqData(
+    val boolean: Property[Seq[Boolean]],
+    val shortBlob: Property[Seq[ShortBlob]],
+    val blob: Property[Seq[Blob]],
+    val category: Property[Seq[Category]],
+    val date: Property[Seq[Date]],
+    val email: Property[Seq[Email]],
+    val double: Property[Seq[Double]],
+    val geoPt: Property[Seq[GeoPt]],
+    val user: Property[Seq[User]],
+    val long: Property[Seq[Long]],
+    val blobKey: Property[Seq[BlobKey]],
+    val keyValue: Property[Seq[Key]],
+    val link: Property[Seq[Link]],
+    val imHandle: Property[Seq[IMHandle]],
+    val postalAddress: Property[Seq[PostalAddress]],
+    val rating: Property[Seq[Rating]],
+    val phoneNumber: Property[Seq[PhoneNumber]],
+    val string: Property[Seq[String]],
+    val text: Property[Seq[Text]])
+  extends Mapper[SeqData] {
+  def this() =
+    this(
+      Seq(false),
+      Seq(Util.createShortBlob("")),
+      Seq(Util.createBlob("")),
+      Seq(new Category("")),
+      Seq(new Date),
+      Seq(new Email("")),
+      Seq(0D),
+      Seq(new GeoPt(0F, 0F)),
+      Seq(new User("", "")),
+      Seq(0L),
+      Seq(new BlobKey("")),
+      Seq(KeyFactory.createKey("default", 1L)),
+      Seq(new Link("")),
+      Seq(new IMHandle(IMHandle.Scheme.unknown, "")),
+      Seq(new PostalAddress("")),
+      Seq(new Rating(0)),
+      Seq(new PhoneNumber("")),
+      Seq(""),
+      Seq(new Text("")))
+  override def toString() = {
+    boolean.toString +
+    shortBlob.toString +
+    blob.toString +
+    category.toString +
+    date.toString +
+    email.toString +
+    double.toString +
+    geoPt.toString +
+    user.toString +
+    long.toString +
+    blobKey.toString +
+    keyValue.toString +
+    link.toString +
+    imHandle.toString +
+    postalAddress.toString +
+    rating.toString +
+    phoneNumber.toString +
+    string.toString +
+    text.toString
+  }
+}
+
+object SeqData extends SeqData
 
 // low-level sample
 import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity }
@@ -84,7 +166,7 @@ case class Person(name: String, age: Long)
 import com.github.hexx.gaeds._
 import com.github.hexx.gaeds.Property._
 
-class Person2(val name: Property[String], val age: Property[Int]) extends Mapper[Person2] {
+class Person2(val name: Property[String], val age: Property[Long]) extends Mapper[Person2] {
   def this() = this("", 0)
   override def toString() = "Person(" + name + "," + age + ")"
 }
@@ -99,12 +181,9 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       new Category("category"),
       new Date,
       new Email("email"),
-      1.23F,
       1.23,
       new GeoPt(1.23F, 1.23F),
       new User("test@gmail.com", "gmail.com"),
-      123.toShort,
-      123,
       123L,
       new BlobKey("blobKey"),
       KeyFactory.createKey("data", 2L),
@@ -115,6 +194,27 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       new PhoneNumber("0"),
       "string",
       new Text("text"))
+  def seqData =
+    new SeqData(
+      Seq(true, false),
+      Seq(Util.createShortBlob("shortBlob1"), Util.createShortBlob("shortBlob2")),
+      Seq(Util.createBlob("blob1"), Util.createBlob("blob2")),
+      Seq(new Category("category1"), new Category("category2")),
+      Seq(new Date, new Date),
+      Seq(new Email("email1"), new Email("email2")),
+      Seq(1.23D, 4.56D),
+      Seq(new GeoPt(1.23F, 1.23F), new GeoPt(4.56F, 4.56F)),
+      Seq(new User("test@gmail.com", "gmail.com"), new User("test@yahoo.com", "yahoo.com")),
+      Seq(123L, 456L),
+      Seq(new BlobKey("blobKey1"), new BlobKey("blobKey2")),
+      Seq(KeyFactory.createKey("data1", 2L), KeyFactory.createKey("data2", 3L)),
+      Seq(new Link("http://www.google.com/"), new Link("http://www.yahoo.com/")),
+      Seq(new IMHandle(IMHandle.Scheme.sip, "imHandle1"), new IMHandle(IMHandle.Scheme.sip, "imHandle2")),
+      Seq(new PostalAddress("postalAddress1"), new PostalAddress("postalAddress2")),
+      Seq(new Rating(1), new Rating(2)),
+      Seq(new PhoneNumber("1"), new PhoneNumber("2")),
+      Seq("string1", "string2"),
+      Seq(new Text("text1"), new Text("text2")))
 
   val helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig())
   before {
@@ -135,6 +235,17 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     d1 must be === d2
   }
 
+  def seqPutTest(k: Key, d: SeqData) = {
+    k.getId must not be 0
+    d.key.get must be === k
+  }
+  def seqPutAndGetTest(k: Key, d1: SeqData, d2: SeqData) = {
+    seqPutTest(k, d1)
+    d1 must be === d2
+    d1.key.get must be === d2.key.get
+    d1 must be === d2
+  }
+
   def printKey(k: Key) {
     println(k)
     println(k.getId)
@@ -144,12 +255,73 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     println(k.isComplete)
   }
 
+  def printSeqData(ds: SeqData) {
+    for (d <- ds.boolean) {
+      println(d)
+    }
+    for (d <- ds.shortBlob) {
+      println(d)
+    }
+    for (p <- ds.blob) {
+      println(p)
+    }
+    for (p <- ds.category) {
+      println(p)
+    }
+    for (p <- ds.date) {
+      println(p)
+    }
+    for (p <- ds.email) {
+      println(p)
+    }
+    for (p <- ds.double) {
+      println(p)
+    }
+    for (p <- ds.geoPt) {
+      println(p)
+    }
+    for (p <- ds.user) {
+      println(p)
+    }
+    for (p <- ds.long) {
+      println(p)
+    }
+    for (p <- ds.blobKey) {
+      println(p)
+    }
+    for (p <- ds.keyValue) {
+      println(p)
+    }
+    for (p <- ds.link) {
+      println(p)
+    }
+    for (p <- ds.imHandle) {
+      println(p)
+    }
+    for (p <- ds.postalAddress) {
+      println(p)
+    }
+    for (p <- ds.rating) {
+      println(p)
+    }
+    for (p <- ds.phoneNumber) {
+      println(p)
+    }
+    for (p <- ds.string) {
+      println(p)
+    }
+    for (p <- ds.text) {
+      println(p)
+    }
+  }
+
   "Entity" should {
     "put and get" in {
       val d1 = data
       val k = d1.put
       val d2 = Data.get(k)
       putAndGetTest(k, d1, d2)
+      println(d2)
       Datastore.delete(k)
     }
     "multi-put and multi-get" in {
@@ -158,8 +330,17 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val ds2 = Data.get(ks:_*)
       for (((k, d1), d2) <- ks zip ds1 zip ds2) {
         putAndGetTest(k, d1, d2)
+        println(d2)
       }
       Datastore.delete(ks:_*)
+    }
+    "seq put and get" in {
+      val d1 = seqData
+      val k = d1.put
+      val d2 = SeqData.get(k)
+      seqPutAndGetTest(k, d1, d2)
+      printSeqData(d2)
+      Datastore.delete(k)
     }
     "low-level api sample" in {
       val ds = DatastoreServiceFactory.getDatastoreService
@@ -181,6 +362,8 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
 
       // 取得
       val p2 = Person2.get(key)
+    }
+    "seq sample" in {
     }
   }
   "Query" should {
@@ -214,6 +397,7 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       }
     }
     "gaeds sample" in {
+      val ps = Person2.query.filter(_.age #>= 10).filter(_.age #<= 20).sort(_.age asc).sort(_.name asc).asIterator
     }
   }
 }
