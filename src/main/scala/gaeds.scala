@@ -23,22 +23,6 @@ object Datastore {
   def getCurrentTransaction() = service.getCurrentTransaction()
   def getCurrentTransaction(returnedIfNoTxn: Transaction) = service.getCurrentTransaction(returnedIfNoTxn)
 
-  def createMapper[T <: Mapper[T]: ClassManifest](entity: Entity): T = {
-    val concreteClass = implicitly[ClassManifest[T]].erasure
-    val mapper = concreteClass.newInstance.asInstanceOf[T]
-    for ((name, value) <- entity.getProperties.asScala) {
-      val field = concreteClass.getDeclaredField(name)
-      field.setAccessible(true)
-      value match {
-        case l: java.util.ArrayList[_] => field.set(mapper, Property(l.asScala))
-        case _ => field.set(mapper, Property(value))
-      }
-    }
-    mapper.key = Option(entity.getKey)
-    mapper.parentKey = Option(entity.getParent)
-    mapper
-  }
-
   case class FutureWrapper[T, U](underlying: Future[T], f: T => U) extends Future[U] {
     def	cancel(mayInterruptIfRunning: Boolean) = underlying.cancel(mayInterruptIfRunning)
     def get(): U = f(underlying.get())
@@ -47,28 +31,28 @@ object Datastore {
     def isDone() = underlying.isDone
   }
 
-  private def wrapGet[T <: Mapper[T]: ClassManifest](entity: Entity): T =
-    createMapper(entity)
-  private def wrapGet[T <: Mapper[T]: ClassManifest](entities: java.util.Map[Key, Entity]): Iterable[T] =
-    entities.asScala.values.map(createMapper(_))
+  private def wrapGet[T <: Mapper[T]: ClassManifest](mapper: T, entity: Entity): T =
+    mapper.fromEntity(entity)
+  private def wrapGet[T <: Mapper[T]: ClassManifest](mapper: T, entities: java.util.Map[Key, Entity]): Iterable[T] =
+    entities.asScala.values.map(mapper.fromEntity(_))
 
-  def get[T <: Mapper[T]: ClassManifest](key: Key): T =
-    wrapGet(service.get(key))
-  def get[T <: Mapper[T]: ClassManifest](keys: Key*): Iterable[T] =
-    wrapGet(service.get(keys.asJava))
-  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, key: Key): T =
-    wrapGet(service.get(txn, key))
-  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: Key*): Iterable[T] =
-    wrapGet(service.get(txn, keys.asJava))
+  def get[T <: Mapper[T]: ClassManifest](mapper: T, key: Key): T =
+    wrapGet(mapper, service.get(key))
+  def get[T <: Mapper[T]: ClassManifest](mapper: T, keys: Key*): Iterable[T] =
+    wrapGet(mapper, service.get(keys.asJava))
+  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, key: Key): T =
+    wrapGet(mapper, service.get(txn, key))
+  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, keys: Key*): Iterable[T] =
+    wrapGet(mapper, service.get(txn, keys.asJava))
 
-  def getAsync[T <: Mapper[T]: ClassManifest](key: Key): Future[T] =
-    FutureWrapper(asyncService.get(key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
-  def getAsync[T <: Mapper[T]: ClassManifest](keys: Key*): Future[Iterable[T]] =
-    FutureWrapper(asyncService.get(keys.asJava), wrapGet(_: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
-  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, key: Key): Future[T] =
-    FutureWrapper(asyncService.get(txn, key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
-  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: Key*): Future[Iterable[T]] =
-    FutureWrapper(asyncService.get(txn, keys.asJava), wrapGet(_: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](mapper: T, key: Key): Future[T] =
+    FutureWrapper(asyncService.get(key), wrapGet(mapper, _: Entity)(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](mapper: T, keys: Key*): Future[Iterable[T]] =
+    FutureWrapper(asyncService.get(keys.asJava), wrapGet(mapper, _: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, key: Key): Future[T] =
+    FutureWrapper(asyncService.get(txn, key), wrapGet(mapper, _: Entity)(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, keys: Key*): Future[Iterable[T]] =
+    FutureWrapper(asyncService.get(txn, keys.asJava), wrapGet(mapper, _: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
 
   private def wrapPut[T <: Mapper[T]](mapper: T)(key: Key) = {
     mapper.key = Option(key)
@@ -195,11 +179,34 @@ object Property {
   implicit def stringSeqValueToProperty(value: Seq[String]) = Property(value)
   implicit def textSeqValueToProperty(value: Seq[Text]) = Property(value)
 
+  implicit def shortBlobOptionValueToProperty(value: Option[ShortBlob]) = Property(value)
+  implicit def blobOptionValueToProperty(value: Option[Blob]) = Property(value)
+  implicit def categoryOptionValueToProperty(value: Option[Category]) = Property(value)
+  implicit def booleanOptionValueToProperty(value: Option[Boolean]) = Property(value)
+  implicit def dateOptionValueToProperty(value: Option[Date]) = Property(value)
+  implicit def emailOptionValueToProperty(value: Option[Email]) = Property(value)
+  implicit def doubleOptionValueToProperty(value: Option[Double]) = Property(value)
+  implicit def geoPtOptionValueToProperty(value: Option[GeoPt]) = Property(value)
+  implicit def userOptionValueToProperty(value: Option[User]) = Property(value)
+  implicit def longOptionValueToProperty(value: Option[Long]) = Property(value)
+  implicit def blobKeyOptionValueToProperty(value: Option[BlobKey]) = Property(value)
+  implicit def keyOptionValueToProperty(value: Option[Key]) = Property(value)
+  implicit def linkOptionValueToProperty(value: Option[Link]) = Property(value)
+  implicit def imHandleOptionValueToProperty(value: Option[IMHandle]) = Property(value)
+  implicit def postalAddressOptionValueToProperty(value: Option[PostalAddress]) = Property(value)
+  implicit def ratingOptionValueToProperty(value: Option[Rating]) = Property(value)
+  implicit def phoneNumberOptionValueToProperty(value: Option[PhoneNumber]) = Property(value)
+  implicit def stringOptionValueToProperty(value: Option[String]) = Property(value)
+  implicit def textOptionValueToProperty(value: Option[Text]) = Property(value)
+
   implicit def propertyToOperator[T: ClassManifest](property: Property[T]) = PropertyOperator(property)
 }
 
 case class Property[T: ClassManifest](var __valueOfProperty: T) {
   var __nameOfProperty: String = _
+  def __valueClass = implicitly[ClassManifest[T]].erasure
+  def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
+  def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
   override def toString = __valueOfProperty.toString
 }
 
@@ -211,7 +218,9 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
   var key: Option[Key] = None
   var parentKey: Option[Key] = None
 
-  def kind = implicitly[ClassManifest[T]].erasure.getName // override to customize
+  def kind = concreteClass.getName // override to customize
+
+  def concreteClass = implicitly[ClassManifest[T]].erasure
 
   def put() = Datastore.put(this)
   def put(txn: Transaction) = Datastore.put(txn, this)
@@ -219,15 +228,15 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
   def putAsync() = Datastore.putAsync(this)
   def putAsync(txn: Transaction) = Datastore.putAsync(txn, this)
 
-  def get(key: Key) = Datastore.get(key)
-  def get(key: Key*) = Datastore.get(key:_*)
-  def get(txn: Transaction, key: Key) = Datastore.get(txn, key)
-  def get(txn: Transaction, key: Key*) = Datastore.get(txn, key:_*)
+  def get(key: Key) = Datastore.get(this, key)
+  def get(key: Key*) = Datastore.get(this, key:_*)
+  def get(txn: Transaction, key: Key) = Datastore.get(txn, this, key)
+  def get(txn: Transaction, key: Key*) = Datastore.get(txn, this, key:_*)
 
-  def getAsync(key: Key): Future[T] = Datastore.getAsync(key)
-  def getAsync(key: Key*): Future[Iterable[T]] = Datastore.getAsync(key:_*)
-  def getAsync(txn: Transaction, key: Key): Future[T] = Datastore.getAsync(txn, key)
-  def getAsync(txn: Transaction, key: Key*): Future[Iterable[T]] = Datastore.getAsync(txn, key:_*)
+  def getAsync(key: Key): Future[T] = Datastore.getAsync(this, key)
+  def getAsync(key: Key*): Future[Iterable[T]] = Datastore.getAsync(this, key:_*)
+  def getAsync(txn: Transaction, key: Key): Future[T] = Datastore.getAsync(txn, this, key)
+  def getAsync(txn: Transaction, key: Key*): Future[Iterable[T]] = Datastore.getAsync(txn, this, key:_*)
 
   def query() = Datastore.query(this)
   def query(ancestorKey: Key) = Datastore.query(this, ancestorKey)
@@ -240,9 +249,29 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
   def query(txn: Transaction, ancestorKey: Key, fetchOptions: FetchOptions) =
     Datastore.query(txn, this, ancestorKey, fetchOptions)
 
-  def fromEntity(entity: Entity): T = Datastore.createMapper(entity)
+  def fromEntity(entity: Entity): T = {
+    val mapper = concreteClass.newInstance.asInstanceOf[T]
+    for {
+      (name, value) <- entity.getProperties.asScala
+      field = concreteClass.getDeclaredField(name)
+      p = findProperty(name).get
+    } {
+      field.setAccessible(true)
+      val v = value match {
+        case l: java.util.ArrayList[_] => l.asScala
+        case null if p.__isSeq => Seq()
+        case _ => if (p.__isOption) Option(value) else value
+      }
+      field.set(mapper, Property(v))
+    }
+    mapper.key = Option(entity.getKey)
+    mapper.parentKey = Option(entity.getParent)
+    mapper
+  }
 
   def properties: Seq[Property[_]] = zipPropertyAndMethod.map(_._1)
+
+  def findProperty(name: String) = properties.find(_.__nameOfProperty == name)
 
   def toEntity = {
     val entity = (key, parentKey) match {
@@ -252,10 +281,13 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
     }
     assert(properties.size != 0, "define fields with Property[T]")
     for (p <- properties) {
-      p.__valueOfProperty match {
-        case l: Seq[_] => entity.setProperty(p.__nameOfProperty, l.asJava)
-        case _ => entity.setProperty(p.__nameOfProperty, p.__valueOfProperty)
+      val v = p.__valueOfProperty match {
+        case l: Seq[_] => l.asJava
+        case Some(v) => v
+        case None => null
+        case _ => p.__valueOfProperty
       }
+      entity.setProperty(p.__nameOfProperty, v)
     }
     entity
   }
