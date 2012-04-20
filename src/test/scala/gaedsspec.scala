@@ -130,25 +130,25 @@ class SeqData(
       Seq(""),
       Seq(new Text("")))
   override def toString() = {
-    boolean.toString +
-    shortBlob.toString +
-    blob.toString +
-    category.toString +
-    date.toString +
-    email.toString +
-    double.toString +
-    geoPt.toString +
-    user.toString +
-    long.toString +
-    blobKey.toString +
-    keyValue.toString +
-    link.toString +
-    imHandle.toString +
-    postalAddress.toString +
-    rating.toString +
-    phoneNumber.toString +
-    string.toString +
-    text.toString
+    boolean.mkString +
+    shortBlob.mkString +
+    blob.mkString +
+    category.mkString +
+    date.mkString +
+    email.mkString +
+    double.mkString +
+    geoPt.mkString +
+    user.mkString +
+    long.mkString +
+    blobKey.mkString +
+    keyValue.mkString +
+    link.mkString +
+    imHandle.mkString +
+    postalAddress.mkString +
+    rating.mkString +
+    phoneNumber.mkString +
+    string.mkString +
+    text.mkString
   }
 }
 
@@ -232,7 +232,7 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     putTest(k, d1)
     d1 must be === d2
     d1.key.get must be === d2.key.get
-    d1 must be === d2
+    d1.toString must be === d2.toString
   }
 
   def seqPutTest(k: Key, d: SeqData) = {
@@ -243,7 +243,7 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     seqPutTest(k, d1)
     d1 must be === d2
     d1.key.get must be === d2.key.get
-    d1 must be === d2
+    d1.toString must be === d2.toString
   }
 
   def printKey(k: Key) {
@@ -362,8 +362,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
 
       // 取得
       val p2 = Person2.get(key)
-    }
-    "seq sample" in {
     }
   }
   "Query" should {
