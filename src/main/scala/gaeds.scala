@@ -29,7 +29,10 @@ object Datastore {
     for ((name, value) <- entity.getProperties.asScala) {
       val field = concreteClass.getDeclaredField(name)
       field.setAccessible(true)
-      field.set(mapper, Property(value))
+      value match {
+        case l: java.util.ArrayList[_] => field.set(mapper, Property(l.asScala))
+        case _ => field.set(mapper, Property(value))
+      }
     }
     mapper.key = Option(entity.getKey)
     mapper.parentKey = Option(entity.getParent)
@@ -151,18 +154,16 @@ case class PropertyOperator[T: ClassManifest](property: Property[T]) {
 
 object Property {
   implicit def propertyToValue[T](property: Property[T]): T = property.__valueOfProperty
+
   implicit def shortBlobValueToProperty(value: ShortBlob) = Property(value)
   implicit def blobValueToProperty(value: Blob) = Property(value)
   implicit def categoryValueToProperty(value: Category) = Property(value)
   implicit def booleanValueToProperty(value: Boolean) = Property(value)
   implicit def dateValueToProperty(value: Date) = Property(value)
   implicit def emailValueToProperty(value: Email) = Property(value)
-  implicit def floatValueToProperty(value: Float) = Property(value)
   implicit def doubleValueToProperty(value: Double) = Property(value)
   implicit def geoPtValueToProperty(value: GeoPt) = Property(value)
   implicit def userValueToProperty(value: User) = Property(value)
-  implicit def shortValueToProperty(value: Short) = Property(value)
-  implicit def intValueToProperty(value: Int) = Property(value)
   implicit def longValueToProperty(value: Long) = Property(value)
   implicit def blobKeyValueToProperty(value: BlobKey) = Property(value)
   implicit def keyValueToProperty(value: Key) = Property(value)
@@ -173,6 +174,26 @@ object Property {
   implicit def phoneNumberValueToProperty(value: PhoneNumber) = Property(value)
   implicit def stringValueToProperty(value: String) = Property(value)
   implicit def textValueToProperty(value: Text) = Property(value)
+
+  implicit def shortBlobSeqValueToProperty(value: Seq[ShortBlob]) = Property(value)
+  implicit def blobSeqValueToProperty(value: Seq[Blob]) = Property(value)
+  implicit def categorySeqValueToProperty(value: Seq[Category]) = Property(value)
+  implicit def booleanSeqValueToProperty(value: Seq[Boolean]) = Property(value)
+  implicit def dateSeqValueToProperty(value: Seq[Date]) = Property(value)
+  implicit def emailSeqValueToProperty(value: Seq[Email]) = Property(value)
+  implicit def doubleSeqValueToProperty(value: Seq[Double]) = Property(value)
+  implicit def geoPtSeqValueToProperty(value: Seq[GeoPt]) = Property(value)
+  implicit def userSeqValueToProperty(value: Seq[User]) = Property(value)
+  implicit def longSeqValueToProperty(value: Seq[Long]) = Property(value)
+  implicit def blobKeySeqValueToProperty(value: Seq[BlobKey]) = Property(value)
+  implicit def keySeqValueToProperty(value: Seq[Key]) = Property(value)
+  implicit def linkSeqValueToProperty(value: Seq[Link]) = Property(value)
+  implicit def imHandleSeqValueToProperty(value: Seq[IMHandle]) = Property(value)
+  implicit def postalAddressSeqValueToProperty(value: Seq[PostalAddress]) = Property(value)
+  implicit def ratingSeqValueToProperty(value: Seq[Rating]) = Property(value)
+  implicit def phoneNumberSeqValueToProperty(value: Seq[PhoneNumber]) = Property(value)
+  implicit def stringSeqValueToProperty(value: Seq[String]) = Property(value)
+  implicit def textSeqValueToProperty(value: Seq[Text]) = Property(value)
 
   implicit def propertyToOperator[T: ClassManifest](property: Property[T]) = PropertyOperator(property)
 }
@@ -231,7 +252,10 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
     }
     assert(properties.size != 0, "define fields with Property[T]")
     for (p <- properties) {
-      entity.setProperty(p.__nameOfProperty, p.__valueOfProperty)
+      p.__valueOfProperty match {
+        case l: Seq[_] => entity.setProperty(p.__nameOfProperty, l.asJava)
+        case _ => entity.setProperty(p.__nameOfProperty, p.__valueOfProperty)
+      }
     }
     entity
   }
