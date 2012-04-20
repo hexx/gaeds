@@ -72,6 +72,24 @@ class Data(
 
 object Data extends Data
 
+// low-level sample
+import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity }
+import com.google.appengine.api.datastore.Query
+import com.google.appengine.api.datastore.Query.FilterOperator._
+import com.google.appengine.api.datastore.Query.SortDirection._
+
+case class Person(name: String, age: Long)
+
+// gaeds sample
+import com.github.hexx.gaeds._
+import com.github.hexx.gaeds.Property._
+
+class Person2(val name: Property[String], val age: Property[Int]) extends Mapper[Person2] {
+  def this() = this("", 0)
+  override def toString() = "Person(" + name + "," + age + ")"
+}
+object Person2 extends Person2
+
 class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
   def data =
     new Data(
@@ -143,13 +161,34 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       }
       Datastore.delete(ks:_*)
     }
+    "low-level api sample" in {
+      val ds = DatastoreServiceFactory.getDatastoreService
+      // 保存
+      val p = Person("John", 13)
+      val e = new Entity("Person")
+      e.setProperty("name", p.name)
+      e.setProperty("age", p.age)
+      val key = ds.put(e)
+
+      // 取得
+      val e2 = ds.get(key)
+      val p2 = Person(e2.getProperty("name").asInstanceOf[String], e2.getProperty("age").asInstanceOf[Long])
+    }
+    "gaeds sample" in {
+      // 保存
+      val p = new Person2("John", 13)
+      val key = p.put()
+
+      // 取得
+      val p2 = Person2.get(key)
+    }
   }
   "Query" should {
     "basic" in {
       val d1 = data
       val k = d1.put
       val d2 = Data.query.asIterator.next
-      Data.query.countEntities must be === 1
+      Data.query.count must be === 1
       Datastore.delete(k)
       d1 must be === d2
     }
@@ -162,6 +201,19 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
         ite1.getCursor must be === c()
         Data.fromEntity(e) must be === d
       }
+    }
+    "low-level api sample" in {
+      val ds = DatastoreServiceFactory.getDatastoreService
+      val q = new Query("Person")
+      q.addFilter("age", GREATER_THAN_OR_EQUAL, 10)
+      q.addFilter("age", LESS_THAN_OR_EQUAL, 20)
+      q.addSort("age", ASCENDING)
+      q.addSort("name", ASCENDING)
+      val ps = for (e <- ds.prepare(q).asIterator.asScala) yield {
+        Person(e.getProperty("name").asInstanceOf[String], e.getProperty("age").asInstanceOf[Long])
+      }
+    }
+    "gaeds sample" in {
     }
   }
 }
