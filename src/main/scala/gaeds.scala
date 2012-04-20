@@ -262,7 +262,7 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
     mapper: T,
     ancestorKey: Option[Key],
     fetchOptions: FetchOptions = FetchOptions.Builder.withDefaults,
-    var _reverse: Boolean = false,
+    _reverse: Boolean = false,
     filterPredicate: List[FilterPredicate[_]] = List(),
     sortPredicate: List[SortPredicate] = List()) {
   def addFilter(f: T => FilterPredicate[_]) =
@@ -294,17 +294,12 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
 
   def count() = prepare(false).countEntities(fetchOptions)
 
-  def prepare(keysOnly: Boolean) = {
-    txn match {
-      case Some(t) => Datastore.service.prepare(t, toQuery(keysOnly))
-      case None => Datastore.service.prepare(toQuery(keysOnly))
-    }
+  def prepare(keysOnly: Boolean) = txn match {
+    case Some(t) => Datastore.service.prepare(t, toQuery(keysOnly))
+    case None => Datastore.service.prepare(toQuery(keysOnly))
   }
 
-  def reverse() = {
-    _reverse = !_reverse
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, !_reverse, filterPredicate, sortPredicate)
-  }
+  def reverse() = new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, !_reverse, filterPredicate, sortPredicate)
 
   def toQuery(keysOnly: Boolean) = {
     val query = ancestorKey match {
