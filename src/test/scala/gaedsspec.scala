@@ -344,23 +344,19 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     }
     "low-level api sample" in {
       val ds = DatastoreServiceFactory.getDatastoreService
-      // 保存
       val p = Person("John", 13)
       val e = new Entity("Person")
       e.setProperty("name", p.name)
       e.setProperty("age", p.age)
       val key = ds.put(e)
 
-      // 取得
       val e2 = ds.get(key)
       val p2 = Person(e2.getProperty("name").asInstanceOf[String], e2.getProperty("age").asInstanceOf[Long])
     }
     "gaeds sample" in {
-      // 保存
       val p = new Person2("John", 13)
       val key = p.put()
 
-      // 取得
       val p2 = Person2.get(key)
     }
   }
