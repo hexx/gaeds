@@ -154,6 +154,73 @@ class SeqData(
 
 object SeqData extends SeqData
 
+class OptionData(
+    val boolean: Property[Option[Boolean]],
+    val shortBlob: Property[Option[ShortBlob]],
+    val blob: Property[Option[Blob]],
+    val category: Property[Option[Category]],
+    val date: Property[Option[Date]],
+    val email: Property[Option[Email]],
+    val double: Property[Option[Double]],
+    val geoPt: Property[Option[GeoPt]],
+    val user: Property[Option[User]],
+    val long: Property[Option[Long]],
+    val blobKey: Property[Option[BlobKey]],
+    val keyValue: Property[Option[Key]],
+    val link: Property[Option[Link]],
+    val imHandle: Property[Option[IMHandle]],
+    val postalAddress: Property[Option[PostalAddress]],
+    val rating: Property[Option[Rating]],
+    val phoneNumber: Property[Option[PhoneNumber]],
+    val string: Property[Option[String]],
+    val text: Property[Option[Text]])
+  extends Mapper[OptionData] {
+  def this() =
+    this(
+      Option(false),
+      Option(Util.createShortBlob("")),
+      Option(Util.createBlob("")),
+      Option(new Category("")),
+      Option(new Date),
+      Option(new Email("")),
+      Option(0D),
+      Option(new GeoPt(0F, 0F)),
+      Option(new User("", "")),
+      Option(0L),
+      Option(new BlobKey("")),
+      Option(KeyFactory.createKey("default", 1L)),
+      Option(new Link("")),
+      Option(new IMHandle(IMHandle.Scheme.unknown, "")),
+      Option(new PostalAddress("")),
+      Option(new Rating(0)),
+      Option(new PhoneNumber("")),
+      Option(""),
+      Option(new Text("")))
+  override def toString() = {
+    boolean.toString +
+    shortBlob.toString +
+    blob.toString +
+    category.toString +
+    date.toString +
+    email.toString +
+    double.toString +
+    geoPt.toString +
+    user.toString +
+    long.toString +
+    blobKey.toString +
+    keyValue.toString +
+    link.toString +
+    imHandle.toString +
+    postalAddress.toString +
+    rating.toString +
+    phoneNumber.toString +
+    string.toString +
+    text.toString
+  }
+}
+
+object OptionData extends OptionData
+
 // low-level sample
 import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity }
 import com.google.appengine.api.datastore.Query
@@ -215,6 +282,69 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       Seq(new PhoneNumber("1"), new PhoneNumber("2")),
       Seq("string1", "string2"),
       Seq(new Text("text1"), new Text("text2")))
+  def emptySeqData =
+    new SeqData(
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq(),
+      Seq())
+  def optionData =
+    new OptionData(
+      Option(true),
+      Option(Util.createShortBlob("shortBlob")),
+      Option(Util.createBlob("blob")),
+      Option(new Category("category")),
+      Option(new Date),
+      Option(new Email("email")),
+      Option(1.23D),
+      Option(new GeoPt(1.23F, 1.23F)),
+      Option(new User("test@gmail.com", "gmail.com")),
+      Option(123L),
+      Option(new BlobKey("blobKey1")),
+      Option(KeyFactory.createKey("data1", 2L)),
+      Option(new Link("http://www.google.com/")),
+      Option(new IMHandle(IMHandle.Scheme.sip, "imHandle1")),
+      Option(new PostalAddress("postalAddress1")),
+      Option(new Rating(1)),
+      Option(new PhoneNumber("1")),
+      Option("string1"),
+      Option(new Text("text1")))
+  def noneOptionData =
+    new OptionData(
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None)
 
   val helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig())
   before {
@@ -246,6 +376,17 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     d1.toString must be === d2.toString
   }
 
+  def optionPutTest(k: Key, d: OptionData) = {
+    k.getId must not be 0
+    d.key.get must be === k
+  }
+  def optionPutAndGetTest(k: Key, d1: OptionData, d2: OptionData) = {
+    optionPutTest(k, d1)
+    d1 must be === d2
+    d1.key.get must be === d2.key.get
+    d1.toString must be === d2.toString
+  }
+
   def printKey(k: Key) {
     println(k)
     println(k.getId)
@@ -256,6 +397,66 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
   }
 
   def printSeqData(ds: SeqData) {
+    for (d <- ds.boolean) {
+      println(d)
+    }
+    for (d <- ds.shortBlob) {
+      println(d)
+    }
+    for (p <- ds.blob) {
+      println(p)
+    }
+    for (p <- ds.category) {
+      println(p)
+    }
+    for (p <- ds.date) {
+      println(p)
+    }
+    for (p <- ds.email) {
+      println(p)
+    }
+    for (p <- ds.double) {
+      println(p)
+    }
+    for (p <- ds.geoPt) {
+      println(p)
+    }
+    for (p <- ds.user) {
+      println(p)
+    }
+    for (p <- ds.long) {
+      println(p)
+    }
+    for (p <- ds.blobKey) {
+      println(p)
+    }
+    for (p <- ds.keyValue) {
+      println(p)
+    }
+    for (p <- ds.link) {
+      println(p)
+    }
+    for (p <- ds.imHandle) {
+      println(p)
+    }
+    for (p <- ds.postalAddress) {
+      println(p)
+    }
+    for (p <- ds.rating) {
+      println(p)
+    }
+    for (p <- ds.phoneNumber) {
+      println(p)
+    }
+    for (p <- ds.string) {
+      println(p)
+    }
+    for (p <- ds.text) {
+      println(p)
+    }
+  }
+
+  def printOptionData(ds: OptionData) {
     for (d <- ds.boolean) {
       println(d)
     }
@@ -340,6 +541,30 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val d2 = SeqData.get(k)
       seqPutAndGetTest(k, d1, d2)
       printSeqData(d2)
+      Datastore.delete(k)
+    }
+    "empty seq put and get" in {
+      val d1 = emptySeqData
+      val k = d1.put
+      val d2 = SeqData.get(k)
+      seqPutAndGetTest(k, d1, d2)
+      printSeqData(d2)
+      Datastore.delete(k)
+    }
+    "option put and get" in {
+      val d1 = optionData
+      val k = d1.put
+      val d2 = OptionData.get(k)
+      optionPutAndGetTest(k, d1, d2)
+      printOptionData(d2)
+      Datastore.delete(k)
+    }
+    "none put and get" in {
+      val d1 = noneOptionData
+      val k = d1.put
+      val d2 = OptionData.get(k)
+      optionPutAndGetTest(k, d1, d2)
+      printOptionData(d2)
       Datastore.delete(k)
     }
     "low-level api sample" in {
