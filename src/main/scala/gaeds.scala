@@ -176,6 +176,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
     }
     mapper.key = Option(entity.getKey)
     mapper.parentKey = Option(entity.getParent)
+    mapper.assignPropertyName()
     mapper
   }
 
