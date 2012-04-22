@@ -154,6 +154,73 @@ class SeqData(
 
 object SeqData extends SeqData
 
+class SetData(
+    val boolean: Property[Set[Boolean]],
+    val shortBlob: Property[Set[ShortBlob]],
+    val blob: Property[Set[Blob]],
+    val category: Property[Set[Category]],
+    val date: Property[Set[Date]],
+    val email: Property[Set[Email]],
+    val double: Property[Set[Double]],
+    val geoPt: Property[Set[GeoPt]],
+    val user: Property[Set[User]],
+    val long: Property[Set[Long]],
+    val blobKey: Property[Set[BlobKey]],
+    val keyValue: Property[Set[Key]],
+    val link: Property[Set[Link]],
+    val imHandle: Property[Set[IMHandle]],
+    val postalAddress: Property[Set[PostalAddress]],
+    val rating: Property[Set[Rating]],
+    val phoneNumber: Property[Set[PhoneNumber]],
+    val string: Property[Set[String]],
+    val text: Property[Set[Text]])
+  extends Mapper[SetData] {
+  def this() =
+    this(
+      Set(false),
+      Set(Util.createShortBlob("")),
+      Set(Util.createBlob("")),
+      Set(new Category("")),
+      Set(new Date),
+      Set(new Email("")),
+      Set(0D),
+      Set(new GeoPt(0F, 0F)),
+      Set(new User("", "")),
+      Set(0L),
+      Set(new BlobKey("")),
+      Set(KeyFactory.createKey("default", 1L)),
+      Set(new Link("")),
+      Set(new IMHandle(IMHandle.Scheme.unknown, "")),
+      Set(new PostalAddress("")),
+      Set(new Rating(0)),
+      Set(new PhoneNumber("")),
+      Set(""),
+      Set(new Text("")))
+  override def toString() = {
+    boolean.mkString +
+    shortBlob.mkString +
+    blob.mkString +
+    category.mkString +
+    date.mkString +
+    email.mkString +
+    double.mkString +
+    geoPt.mkString +
+    user.mkString +
+    long.mkString +
+    blobKey.mkString +
+    keyValue.mkString +
+    link.mkString +
+    imHandle.mkString +
+    postalAddress.mkString +
+    rating.mkString +
+    phoneNumber.mkString +
+    string.mkString +
+    text.mkString
+  }
+}
+
+object SetData extends SetData
+
 class OptionData(
     val boolean: Property[Option[Boolean]],
     val shortBlob: Property[Option[ShortBlob]],
@@ -282,6 +349,27 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       Seq(new PhoneNumber("1"), new PhoneNumber("2")),
       Seq("string1", "string2"),
       Seq(new Text("text1"), new Text("text2")))
+  def setData =
+    new SetData(
+      Set(true, false),
+      Set(Util.createShortBlob("shortBlob1"), Util.createShortBlob("shortBlob2")),
+      Set(Util.createBlob("blob1"), Util.createBlob("blob2")),
+      Set(new Category("category1"), new Category("category2")),
+      Set(new Date, new Date),
+      Set(new Email("email1"), new Email("email2")),
+      Set(1.23D, 4.56D),
+      Set(new GeoPt(1.23F, 1.23F), new GeoPt(4.56F, 4.56F)),
+      Set(new User("test@gmail.com", "gmail.com"), new User("test@yahoo.com", "yahoo.com")),
+      Set(123L, 456L),
+      Set(new BlobKey("blobKey1"), new BlobKey("blobKey2")),
+      Set(KeyFactory.createKey("data1", 2L), KeyFactory.createKey("data2", 3L)),
+      Set(new Link("http://www.google.com/"), new Link("http://www.yahoo.com/")),
+      Set(new IMHandle(IMHandle.Scheme.sip, "imHandle1"), new IMHandle(IMHandle.Scheme.sip, "imHandle2")),
+      Set(new PostalAddress("postalAddress1"), new PostalAddress("postalAddress2")),
+      Set(new Rating(1), new Rating(2)),
+      Set(new PhoneNumber("1"), new PhoneNumber("2")),
+      Set("string1", "string2"),
+      Set(new Text("text1"), new Text("text2")))
   def emptySeqData =
     new SeqData(
       Seq(),
@@ -303,6 +391,27 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       Seq(),
       Seq(),
       Seq())
+  def emptySetData =
+    new SetData(
+      Set(): Set[Boolean],
+      Set(): Set[ShortBlob],
+      Set(): Set[Blob],
+      Set(): Set[Category],
+      Set(): Set[Date],
+      Set(): Set[Email],
+      Set(): Set[Double],
+      Set(): Set[GeoPt],
+      Set(): Set[User],
+      Set(): Set[Long],
+      Set(): Set[BlobKey],
+      Set(): Set[Key],
+      Set(): Set[Link],
+      Set(): Set[IMHandle],
+      Set(): Set[PostalAddress],
+      Set(): Set[Rating],
+      Set(): Set[PhoneNumber],
+      Set(): Set[String],
+      Set(): Set[Text])
   def optionData =
     new OptionData(
       Option(true),
@@ -376,6 +485,17 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     d1.toString must be === d2.toString
   }
 
+  def setPutTest(k: Key, d: SetData) = {
+    k.getId must not be 0
+    d.key.get must be === k
+  }
+  def setPutAndGetTest(k: Key, d1: SetData, d2: SetData) = {
+    setPutTest(k, d1)
+    d1 must be === d2
+    d1.key.get must be === d2.key.get
+    d1.toString must be === d2.toString
+  }
+
   def optionPutTest(k: Key, d: OptionData) = {
     k.getId must not be 0
     d.key.get must be === k
@@ -397,6 +517,66 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
   }
 
   def printSeqData(ds: SeqData) {
+    for (d <- ds.boolean) {
+      println(d)
+    }
+    for (d <- ds.shortBlob) {
+      println(d)
+    }
+    for (p <- ds.blob) {
+      println(p)
+    }
+    for (p <- ds.category) {
+      println(p)
+    }
+    for (p <- ds.date) {
+      println(p)
+    }
+    for (p <- ds.email) {
+      println(p)
+    }
+    for (p <- ds.double) {
+      println(p)
+    }
+    for (p <- ds.geoPt) {
+      println(p)
+    }
+    for (p <- ds.user) {
+      println(p)
+    }
+    for (p <- ds.long) {
+      println(p)
+    }
+    for (p <- ds.blobKey) {
+      println(p)
+    }
+    for (p <- ds.keyValue) {
+      println(p)
+    }
+    for (p <- ds.link) {
+      println(p)
+    }
+    for (p <- ds.imHandle) {
+      println(p)
+    }
+    for (p <- ds.postalAddress) {
+      println(p)
+    }
+    for (p <- ds.rating) {
+      println(p)
+    }
+    for (p <- ds.phoneNumber) {
+      println(p)
+    }
+    for (p <- ds.string) {
+      println(p)
+    }
+    for (p <- ds.text) {
+      println(p)
+    }
+  }
+
+  def printSetData(ds: SetData) {
     for (d <- ds.boolean) {
       println(d)
     }
@@ -543,12 +723,27 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       printSeqData(d2)
       Datastore.delete(k)
     }
+    "set put and get" in {
+      val d1 = setData
+      val k = d1.put
+      val d2 = SetData.get(k)
+      printSetData(d2)
+      Datastore.delete(k)
+    }
     "empty seq put and get" in {
       val d1 = emptySeqData
       val k = d1.put
       val d2 = SeqData.get(k)
       seqPutAndGetTest(k, d1, d2)
       printSeqData(d2)
+      Datastore.delete(k)
+    }
+    "empty set put and get" in {
+      val d1 = emptySetData
+      val k = d1.put
+      val d2 = SetData.get(k)
+      setPutAndGetTest(k, d1, d2)
+      printSetData(d2)
       Datastore.delete(k)
     }
     "option put and get" in {

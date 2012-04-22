@@ -179,6 +179,26 @@ object Property {
   implicit def stringSeqValueToProperty(value: Seq[String]) = Property(value)
   implicit def textSeqValueToProperty(value: Seq[Text]) = Property(value)
 
+  implicit def shortBlobSetValueToProperty(value: Set[ShortBlob]) = Property(value)
+  implicit def blobSetValueToProperty(value: Set[Blob]) = Property(value)
+  implicit def categorySetValueToProperty(value: Set[Category]) = Property(value)
+  implicit def booleanSetValueToProperty(value: Set[Boolean]) = Property(value)
+  implicit def dateSetValueToProperty(value: Set[Date]) = Property(value)
+  implicit def emailSetValueToProperty(value: Set[Email]) = Property(value)
+  implicit def doubleSetValueToProperty(value: Set[Double]) = Property(value)
+  implicit def geoPtSetValueToProperty(value: Set[GeoPt]) = Property(value)
+  implicit def userSetValueToProperty(value: Set[User]) = Property(value)
+  implicit def longSetValueToProperty(value: Set[Long]) = Property(value)
+  implicit def blobKeySetValueToProperty(value: Set[BlobKey]) = Property(value)
+  implicit def keySetValueToProperty(value: Set[Key]) = Property(value)
+  implicit def linkSetValueToProperty(value: Set[Link]) = Property(value)
+  implicit def imHandleSetValueToProperty(value: Set[IMHandle]) = Property(value)
+  implicit def postalAddressSetValueToProperty(value: Set[PostalAddress]) = Property(value)
+  implicit def ratingSetValueToProperty(value: Set[Rating]) = Property(value)
+  implicit def phoneNumberSetValueToProperty(value: Set[PhoneNumber]) = Property(value)
+  implicit def stringSetValueToProperty(value: Set[String]) = Property(value)
+  implicit def textSetValueToProperty(value: Set[Text]) = Property(value)
+
   implicit def shortBlobOptionValueToProperty(value: Option[ShortBlob]) = Property(value)
   implicit def blobOptionValueToProperty(value: Option[Blob]) = Property(value)
   implicit def categoryOptionValueToProperty(value: Option[Category]) = Property(value)
@@ -207,6 +227,7 @@ case class Property[T: ClassManifest](var __valueOfProperty: T) {
   def __valueClass = implicitly[ClassManifest[T]].erasure
   def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
+  def __isSet = classOf[Set[_]].isAssignableFrom(__valueClass)
   override def toString = __valueOfProperty.toString
 }
 
@@ -259,7 +280,9 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
       field.setAccessible(true)
       val v = value match {
         case l: java.util.ArrayList[_] => l.asScala
+        case s: java.util.HashSet[_] => s.asScala
         case null if p.__isSeq => Seq()
+        case null if p.__isSet => Set()
         case _ => if (p.__isOption) Option(value) else value
       }
       field.set(mapper, Property(v))
@@ -283,6 +306,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
     for (p <- properties) {
       val v = p.__valueOfProperty match {
         case l: Seq[_] => l.asJava
+        case s: Set[_] => s.asJava
         case Some(v) => v
         case None => null
         case _ => p.__valueOfProperty
@@ -327,7 +351,7 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
 
   def addSort(f: T => SortPredicate) =
     new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate, sortPredicate :+ f(mapper))
-  def sort(f: T => SortPredicate) = addSort(f: T => SortPredicate)
+  def sort(f: T => SortPredicate) = addSort(f)
 
   def asEntityIterator(keysOnly: Boolean) = prepare(keysOnly).asIterator(fetchOptions).asScala
   def asQueryResultIterator(keysOnly: Boolean) = prepare(keysOnly).asQueryResultIterator(fetchOptions)
