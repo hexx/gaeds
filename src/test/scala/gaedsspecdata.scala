@@ -525,6 +525,29 @@ object SampleData {
       None,
       None)
 
+  def checkUnindexedProperty(ds: UnindexedData) = {
+    val entity = ds.toEntity
+    entity.isUnindexedProperty("boolean") && 
+    entity.isUnindexedProperty("shortBlob") && 
+    entity.isUnindexedProperty("blob") &&
+    entity.isUnindexedProperty("category") &&
+    entity.isUnindexedProperty("date") &&
+    entity.isUnindexedProperty("email") &&
+    entity.isUnindexedProperty("double") &&
+    entity.isUnindexedProperty("geoPt") &&
+    entity.isUnindexedProperty("user") &&
+    entity.isUnindexedProperty("long") &&
+    entity.isUnindexedProperty("blobKey") &&
+    entity.isUnindexedProperty("keyValue") &&
+    entity.isUnindexedProperty("link") &&
+    entity.isUnindexedProperty("imHandle") &&
+    entity.isUnindexedProperty("postalAddress") &&
+    entity.isUnindexedProperty("rating") &&
+    entity.isUnindexedProperty("phoneNumber") &&
+    entity.isUnindexedProperty("string") &&
+    entity.isUnindexedProperty("text")
+  }
+
   def printSeqData(ds: SeqData) {
     for (d <- ds.boolean) {
       println(d)

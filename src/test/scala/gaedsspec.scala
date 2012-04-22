@@ -68,7 +68,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val k = d1.put
       val d2 = Data.get(k)
       putAndGetTest(k, d1, d2)
-      println(d2)
       Datastore.delete(k)
     }
     "multi-put and multi-get" in {
@@ -77,7 +76,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val ds2 = Data.get(ks:_*)
       for (((k, d1), d2) <- ks zip ds1 zip ds2) {
         putAndGetTest(k, d1, d2)
-        println(d2)
       }
       Datastore.delete(ks:_*)
     }
@@ -86,7 +84,8 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val k = d1.put
       val d2 = UnindexedData.get(k)
       putAndGetTest(k, d1, d2)
-      println(d2)
+      checkUnindexedProperty(d1) must be === true
+      checkUnindexedProperty(d2) must be === true
       Datastore.delete(k)
     }
     "seq put and get" in {
