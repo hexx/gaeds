@@ -15,7 +15,7 @@ class BaseProperty[T: ClassManifest](var __valueOfProperty: T) {
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
   def __isSet = classOf[Set[_]].isAssignableFrom(__valueClass)
   def __isUnindexed = false
-  def __javaValueOfProperty: Any = __valueOfProperty match {
+  def __javaValueOfProperty = __valueOfProperty match {
     case l: Seq[_] => l.asJava
     case s: Set[_] => s.asJava
     case o: Option[_] => o getOrElse null
@@ -32,8 +32,8 @@ case class UnindexedProperty[T: ClassManifest](__valueOfPropertyArg: T) extends 
   override def __setToEntity(entity: Entity) = entity.setUnindexedProperty(__nameOfProperty, __javaValueOfProperty)
 }
 
-case class FilterPredicate[T](val property: BaseProperty[T], val operator: FilterOperator, val value: T*)
-case class SortPredicate(val property: BaseProperty[_], val direction: SortDirection)
+case class FilterPredicate[T](property: BaseProperty[T], operator: FilterOperator, value: T*)
+case class SortPredicate(property: BaseProperty[_], direction: SortDirection)
 
 case class PropertyOperator[T: ClassManifest](property: BaseProperty[T]) {
   def #<(v: T) = FilterPredicate(property, FilterOperator.LESS_THAN, v)
