@@ -283,4 +283,17 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
     }
     query
   }
+
+  def startCursor(cursor: Cursor) =
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.startCursor(cursor), _reverse, filterPredicate, sortPredicate)
+  def endCursor(cursor: Cursor) =
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.endCursor(cursor), _reverse, filterPredicate, sortPredicate)
+  def chunkSize(size: Int) =
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.chunkSize(size), _reverse, filterPredicate, sortPredicate)
+  def limit(limit: Int) =
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.limit(limit), _reverse, filterPredicate, sortPredicate)
+  def offset(offset: Int) =
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.offset(offset), _reverse, filterPredicate, sortPredicate)
+  def prefetchSize(size: Int) =
+    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.prefetchSize(size), _reverse, filterPredicate, sortPredicate)
 }
