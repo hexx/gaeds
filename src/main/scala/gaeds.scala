@@ -103,10 +103,10 @@ object Datastore {
   def query[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, ancestorKey: Key, fetchOptions: FetchOptions) =
     new TypeSafeQuery(Some(txn), mapper, Some(ancestorKey), fetchOptions)
 
-  def transaction[T](block: => T): T = {
+  def transaction[T](block: Transaction => T): T = {
     val t = service.beginTransaction
     try {
-      val res = block
+      val res = block(t)
       t.commit()
       res
     } finally {
@@ -115,6 +115,7 @@ object Datastore {
       }
     }
   }
+  def transaction[T](block: => T): T = transaction((t: Transaction) => block)
 }
 
 abstract class Mapper[T <: Mapper[T]: ClassManifest] {
