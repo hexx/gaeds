@@ -21,8 +21,6 @@ import com.google.appengine.api.datastore.Query
 import com.google.appengine.api.datastore.Query.FilterOperator._
 import com.google.appengine.api.datastore.Query.SortDirection._
 
-case class Person(name: String, age: Long)
-
 // gaeds sample
 import com.github.hexx.gaeds._
 import com.github.hexx.gaeds.Property._

@@ -1,5 +1,6 @@
 package com.github.hexx.gaeds
 
+import java.io.{ ByteArrayInputStream, ObjectInputStream }
 import java.lang.reflect.Method
 import java.util.concurrent.{ Future, TimeUnit }
 import scala.collection.JavaConverters._
@@ -158,21 +159,50 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
     Datastore.query(txn, this, ancestorKey, fetchOptions)
 
   def fromEntity(entity: Entity): T = {
+    def loadFromBlob(b: Blob): Serializable = {
+      val in = new ObjectInputStream(new ByteArrayInputStream(b.getBytes))
+      val s = in.readObject.asInstanceOf[Serializable]
+      in.close()
+      s
+    }
+
+    def scalaValueOfProperty(p: BaseProperty[_]): Any => Any = {
+      case l: java.util.ArrayList[_] =>
+        if (p.__isContentSerializable) {
+          l.asInstanceOf[java.util.ArrayList[Blob]].asScala.map(loadFromBlob)
+        } else {
+          l.asScala
+        }
+      case s: java.util.HashSet[_] =>
+        if (p.__isContentSerializable) {
+          s.asInstanceOf[java.util.HashSet[Blob]].asScala.map(loadFromBlob)
+        } else {
+          s.asScala
+        }
+      case null if p.__isSeq => Seq()
+      case null if p.__isSet => Set()
+      case b: Blob if p.__isSerializable && !p.__isOption => loadFromBlob(b)
+      case v =>
+        if (p.__isOption) {
+          if (p.__isContentSerializable) {
+            Option(v).asInstanceOf[Option[Blob]].map(loadFromBlob)
+          } else {
+            Option(v)
+          }
+        } else {
+          v
+        }
+    }
+
     val mapper = concreteClass.newInstance.asInstanceOf[T]
     for {
       (name, value) <- entity.getProperties.asScala
       field = concreteClass.getDeclaredField(name)
       p = findProperty(name).get
     } {
-      field.setAccessible(true)
-      val v = value match {
-        case l: java.util.ArrayList[_] => l.asScala
-        case s: java.util.HashSet[_] => s.asScala
-        case null if p.__isSeq => Seq()
-        case null if p.__isSet => Set()
-        case _ => if (p.__isOption) Option(value) else value
-      }
+      val v = scalaValueOfProperty(p)(value)
       val p2 = if (p.__isUnindexed) UnindexedProperty(v) else Property(v)
+      field.setAccessible(true)
       field.set(mapper, p2)
     }
     mapper.key = Option(entity.getKey)

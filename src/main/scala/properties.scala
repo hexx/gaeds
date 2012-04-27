@@ -1,5 +1,6 @@
 package com.github.hexx.gaeds
 
+import java.io.{ ByteArrayOutputStream, ObjectOutputStream }
 import java.util.Date
 import scala.collection.JavaConverters._
 import com.google.appengine.api.blobstore.BlobKey
@@ -8,26 +9,59 @@ import com.google.appengine.api.datastore.Query.FilterOperator
 import com.google.appengine.api.datastore.Query.SortDirection
 import com.google.appengine.api.users.User
 
-class BaseProperty[T: ClassManifest](var __valueOfProperty: T) {
+class BaseProperty[T: Manifest](var __valueOfProperty: T) {
   var __nameOfProperty: String = _
-  def __valueClass = implicitly[ClassManifest[T]].erasure
   def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
   def __isSet = classOf[Set[_]].isAssignableFrom(__valueClass)
+  def __isSerializable = classOf[Serializable].isAssignableFrom(__valueClass)
+  def __isContentSerializable = classOf[Serializable].isAssignableFrom(__contentClass)
   def __isUnindexed = false
+  def __setToEntity(entity: Entity) = entity.setProperty(__nameOfProperty, __javaValueOfProperty)
+
   def __javaValueOfProperty = __valueOfProperty match {
-    case l: Seq[_] => l.asJava
-    case s: Set[_] => s.asJava
-    case o: Option[_] => o getOrElse null
+    case l: Seq[_] =>
+      if (__isContentSerializable) {
+        l.asInstanceOf[Seq[Serializable]].map(dumpToBlob).asJava
+      } else {
+        l.asJava
+      }
+    case s: Set[_] =>
+      if (__isContentSerializable) {
+        s.asInstanceOf[Set[Serializable]].map(dumpToBlob).asJava
+      } else {
+        s.asJava
+      }
+    case o: Option[_] => o match {
+      case Some(v) =>
+        if (__isContentSerializable) {
+          dumpToBlob(v.asInstanceOf[Serializable]) 
+        } else {
+          v
+        }
+      case None => null
+    }
+    case s: Serializable => dumpToBlob(s)
     case _ => __valueOfProperty
   }
-  def __setToEntity(entity: Entity) = entity.setProperty(__nameOfProperty, __javaValueOfProperty)
+
   override def toString = __valueOfProperty.toString
+
+  private def __valueClass = implicitly[Manifest[T]].erasure
+  private def __contentClass = implicitly[Manifest[T]].typeArguments(0).erasure
+
+  private def dumpToBlob(s: Serializable) = {
+    val ba = new ByteArrayOutputStream
+    val out = new ObjectOutputStream(ba)
+    out.writeObject(s)
+    out.close()
+    new Blob(ba.toByteArray)
+  }
 }
 
-case class Property[T: ClassManifest](__valueOfPropertyArg: T) extends BaseProperty[T](__valueOfPropertyArg)
+case class Property[T: Manifest](__valueOfPropertyArg: T) extends BaseProperty[T](__valueOfPropertyArg)
 
-case class UnindexedProperty[T: ClassManifest](__valueOfPropertyArg: T) extends BaseProperty[T](__valueOfPropertyArg) {
+case class UnindexedProperty[T: Manifest](__valueOfPropertyArg: T) extends BaseProperty[T](__valueOfPropertyArg) {
   override def __isUnindexed = true
   override def __setToEntity(entity: Entity) = entity.setUnindexedProperty(__nameOfProperty, __javaValueOfProperty)
 }
@@ -69,6 +103,7 @@ object Property {
   implicit def phoneNumberValueToProperty(value: PhoneNumber) = Property(value)
   implicit def stringValueToProperty(value: String) = Property(value)
   implicit def textValueToProperty(value: Text) = Property(value)
+  implicit def serializableValueToProperty[T <: Serializable: Manifest](value: T) = Property(value)
 
   implicit def shortBlobSeqValueToProperty(value: Seq[ShortBlob]) = Property(value)
   implicit def blobSeqValueToProperty(value: Seq[Blob]) = Property(value)
@@ -89,6 +124,7 @@ object Property {
   implicit def phoneNumberSeqValueToProperty(value: Seq[PhoneNumber]) = Property(value)
   implicit def stringSeqValueToProperty(value: Seq[String]) = Property(value)
   implicit def textSeqValueToProperty(value: Seq[Text]) = Property(value)
+  implicit def serializableSeqValueToProperty[T <: Serializable: Manifest](value: Seq[T]) = Property(value)
 
   implicit def shortBlobSetValueToProperty(value: Set[ShortBlob]) = Property(value)
   implicit def blobSetValueToProperty(value: Set[Blob]) = Property(value)
@@ -109,6 +145,7 @@ object Property {
   implicit def phoneNumberSetValueToProperty(value: Set[PhoneNumber]) = Property(value)
   implicit def stringSetValueToProperty(value: Set[String]) = Property(value)
   implicit def textSetValueToProperty(value: Set[Text]) = Property(value)
+  implicit def serializableSetValueToProperty[T <: Serializable: Manifest](value: Set[T]) = Property(value)
 
   implicit def shortBlobOptionValueToProperty(value: Option[ShortBlob]) = Property(value)
   implicit def blobOptionValueToProperty(value: Option[Blob]) = Property(value)
@@ -129,6 +166,7 @@ object Property {
   implicit def phoneNumberOptionValueToProperty(value: Option[PhoneNumber]) = Property(value)
   implicit def stringOptionValueToProperty(value: Option[String]) = Property(value)
   implicit def textOptionValueToProperty(value: Option[Text]) = Property(value)
+  implicit def serializableOptionValueToProperty[T <: Serializable: Manifest](value: Option[T]) = Property(value)
 
   implicit def shortBlobValueToUnindexedProperty(value: ShortBlob) = UnindexedProperty(value)
   implicit def blobValueToUnindexedProperty(value: Blob) = UnindexedProperty(value)
@@ -149,6 +187,7 @@ object Property {
   implicit def phoneNumberValueToUnindexedProperty(value: PhoneNumber) = UnindexedProperty(value)
   implicit def stringValueToUnindexedProperty(value: String) = UnindexedProperty(value)
   implicit def textValueToUnindexedProperty(value: Text) = UnindexedProperty(value)
+  implicit def serializableValueToUnindexedProperty[T <: Serializable: Manifest](value: T) = UnindexedProperty(value)
 
   implicit def shortBlobSeqValueToUnindexedProperty(value: Seq[ShortBlob]) = UnindexedProperty(value)
   implicit def blobSeqValueToUnindexedProperty(value: Seq[Blob]) = UnindexedProperty(value)
@@ -169,6 +208,7 @@ object Property {
   implicit def phoneNumberSeqValueToUnindexedProperty(value: Seq[PhoneNumber]) = UnindexedProperty(value)
   implicit def stringSeqValueToUnindexedProperty(value: Seq[String]) = UnindexedProperty(value)
   implicit def textSeqValueToUnindexedProperty(value: Seq[Text]) = UnindexedProperty(value)
+  implicit def serializableSeqValueToUnindexedProperty[T <: Serializable: Manifest](value: Seq[T]) = UnindexedProperty(value)
 
   implicit def shortBlobSetValueToUnindexedProperty(value: Set[ShortBlob]) = UnindexedProperty(value)
   implicit def blobSetValueToUnindexedProperty(value: Set[Blob]) = UnindexedProperty(value)
@@ -189,6 +229,7 @@ object Property {
   implicit def phoneNumberSetValueToUnindexedProperty(value: Set[PhoneNumber]) = UnindexedProperty(value)
   implicit def stringSetValueToUnindexedProperty(value: Set[String]) = UnindexedProperty(value)
   implicit def textSetValueToUnindexedProperty(value: Set[Text]) = UnindexedProperty(value)
+  implicit def serializableSetValueToUnindexedProperty[T <: Serializable: Manifest](value: Set[T]) = UnindexedProperty(value)
 
   implicit def shortBlobOptionValueToUnindexedProperty(value: Option[ShortBlob]) = UnindexedProperty(value)
   implicit def blobOptionValueToUnindexedProperty(value: Option[Blob]) = UnindexedProperty(value)
@@ -209,6 +250,7 @@ object Property {
   implicit def phoneNumberOptionValueToUnindexedProperty(value: Option[PhoneNumber]) = UnindexedProperty(value)
   implicit def stringOptionValueToUnindexedProperty(value: Option[String]) = UnindexedProperty(value)
   implicit def textOptionValueToUnindexedProperty(value: Option[Text]) = UnindexedProperty(value)
+  implicit def serializableOptionValueToUnindexedProperty[T <: Serializable: Manifest](value: Option[T]) = UnindexedProperty(value)
 
   implicit def propertyToOperator[T: ClassManifest](property: BaseProperty[T]) = PropertyOperator(property)
 }

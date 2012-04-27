@@ -13,6 +13,8 @@ object Util {
   def createBlob(s: String) = new Blob(stringToByteArray(s))
 }
 
+case class Person(name: String, age: Long)
+
 class Data(
     val boolean: Property[Boolean],
     val shortBlob: Property[ShortBlob],
@@ -32,7 +34,8 @@ class Data(
     val rating: Property[Rating],
     val phoneNumber: Property[PhoneNumber],
     val string: Property[String],
-    val text: Property[Text])
+    val text: Property[Text],
+    val person: Property[Person])
   extends Mapper[Data] {
   def this() =
     this(
@@ -54,7 +57,8 @@ class Data(
       new Rating(0),
       new PhoneNumber(""),
       "",
-      new Text(""))
+      new Text(""),
+      Person("", 0))
   override def toString() = {
     boolean.toString +
     shortBlob.toString +
@@ -74,7 +78,8 @@ class Data(
     rating.toString +
     phoneNumber.toString +
     string.toString +
-    text.toString
+    text.toString +
+    person.toString
   }
 }
 
@@ -99,7 +104,8 @@ class UnindexedData(
     val rating: UnindexedProperty[Rating],
     val phoneNumber: UnindexedProperty[PhoneNumber],
     val string: UnindexedProperty[String],
-    val text: UnindexedProperty[Text])
+    val text: UnindexedProperty[Text],
+    val person: UnindexedProperty[Person])
   extends Mapper[UnindexedData] {
   def this() =
     this(
@@ -121,7 +127,8 @@ class UnindexedData(
       new Rating(0),
       new PhoneNumber(""),
       "",
-      new Text(""))
+      new Text(""),
+      Person("", 0))
   override def toString() = {
     boolean.toString +
     shortBlob.toString +
@@ -141,7 +148,8 @@ class UnindexedData(
     rating.toString +
     phoneNumber.toString +
     string.toString +
-    text.toString
+    text.toString +
+    person.toString
   }
 }
 
@@ -166,7 +174,8 @@ class SeqData(
     val rating: Property[Seq[Rating]],
     val phoneNumber: Property[Seq[PhoneNumber]],
     val string: Property[Seq[String]],
-    val text: Property[Seq[Text]])
+    val text: Property[Seq[Text]],
+    val person: Property[Seq[Person]])
   extends Mapper[SeqData] {
   def this() =
     this(
@@ -188,7 +197,8 @@ class SeqData(
       Seq(new Rating(0)),
       Seq(new PhoneNumber("")),
       Seq(""),
-      Seq(new Text("")))
+      Seq(new Text("")),
+      Seq(Person("", 0)))
   override def toString() = {
     boolean.mkString +
     shortBlob.mkString +
@@ -208,7 +218,8 @@ class SeqData(
     rating.mkString +
     phoneNumber.mkString +
     string.mkString +
-    text.mkString
+    text.mkString +
+    person.mkString
   }
 }
 
@@ -233,7 +244,8 @@ class SetData(
     val rating: Property[Set[Rating]],
     val phoneNumber: Property[Set[PhoneNumber]],
     val string: Property[Set[String]],
-    val text: Property[Set[Text]])
+    val text: Property[Set[Text]],
+    val person: Property[Set[Person]])
   extends Mapper[SetData] {
   def this() =
     this(
@@ -255,7 +267,8 @@ class SetData(
       Set(new Rating(0)),
       Set(new PhoneNumber("")),
       Set(""),
-      Set(new Text("")))
+      Set(new Text("")),
+      Set(Person("", 0)))
   override def toString() = {
     boolean.mkString +
     shortBlob.mkString +
@@ -275,7 +288,8 @@ class SetData(
     rating.mkString +
     phoneNumber.mkString +
     string.mkString +
-    text.mkString
+    text.mkString +
+    person.mkString
   }
 }
 
@@ -300,7 +314,8 @@ class OptionData(
     val rating: Property[Option[Rating]],
     val phoneNumber: Property[Option[PhoneNumber]],
     val string: Property[Option[String]],
-    val text: Property[Option[Text]])
+    val text: Property[Option[Text]],
+    val person: Property[Option[Person]])
   extends Mapper[OptionData] {
   def this() =
     this(
@@ -322,7 +337,8 @@ class OptionData(
       Option(new Rating(0)),
       Option(new PhoneNumber("")),
       Option(""),
-      Option(new Text("")))
+      Option(new Text("")),
+      Option(Person("", 0)))
   override def toString() = {
     boolean.toString +
     shortBlob.toString +
@@ -342,7 +358,8 @@ class OptionData(
     rating.toString +
     phoneNumber.toString +
     string.toString +
-    text.toString
+    text.toString +
+    person.toString
   }
 }
 
@@ -369,7 +386,8 @@ object SampleData {
       new Rating(1),
       new PhoneNumber("0"),
       "string",
-      new Text("text"))
+      new Text("text"),
+      Person("John", 15))
 
   def unindexedData =
     new UnindexedData(
@@ -391,7 +409,8 @@ object SampleData {
       new Rating(1),
       new PhoneNumber("0"),
       "string",
-      new Text("text"))
+      new Text("text"),
+      Person("John", 15))
 
   def seqData =
     new SeqData(
@@ -413,7 +432,8 @@ object SampleData {
       Seq(new Rating(1), new Rating(2)),
       Seq(new PhoneNumber("1"), new PhoneNumber("2")),
       Seq("string1", "string2"),
-      Seq(new Text("text1"), new Text("text2")))
+      Seq(new Text("text1"), new Text("text2")),
+      Seq(Person("John", 15)))
 
   def setData =
     new SetData(
@@ -435,10 +455,12 @@ object SampleData {
       Set(new Rating(1), new Rating(2)),
       Set(new PhoneNumber("1"), new PhoneNumber("2")),
       Set("string1", "string2"),
-      Set(new Text("text1"), new Text("text2")))
+      Set(new Text("text1"), new Text("text2")),
+      Set(Person("John", 15)))
 
   def emptySeqData =
     new SeqData(
+      Seq(),
       Seq(),
       Seq(),
       Seq(),
@@ -479,7 +501,8 @@ object SampleData {
       Set(): Set[Rating],
       Set(): Set[PhoneNumber],
       Set(): Set[String],
-      Set(): Set[Text])
+      Set(): Set[Text],
+      Set(): Set[Person])
 
   def optionData =
     new OptionData(
@@ -501,10 +524,12 @@ object SampleData {
       Option(new Rating(1)),
       Option(new PhoneNumber("1")),
       Option("string1"),
-      Option(new Text("text1")))
+      Option(new Text("text1")),
+      Option(Person("John", 15)))
 
   def noneOptionData =
     new OptionData(
+      None,
       None,
       None,
       None,
@@ -545,7 +570,8 @@ object SampleData {
     entity.isUnindexedProperty("rating") &&
     entity.isUnindexedProperty("phoneNumber") &&
     entity.isUnindexedProperty("string") &&
-    entity.isUnindexedProperty("text")
+    entity.isUnindexedProperty("text") &&
+    entity.isUnindexedProperty("person")
   }
 
   def printSeqData(ds: SeqData) {
@@ -604,6 +630,9 @@ object SampleData {
       println(p)
     }
     for (p <- ds.text) {
+      println(p)
+    }
+    for (p <- ds.person) {
       println(p)
     }
   }
@@ -666,6 +695,9 @@ object SampleData {
     for (p <- ds.text) {
       println(p)
     }
+    for (p <- ds.person) {
+      println(p)
+    }
   }
 
   def printOptionData(ds: OptionData) {
@@ -724,6 +756,9 @@ object SampleData {
       println(p)
     }
     for (p <- ds.text) {
+      println(p)
+    }
+    for (p <- ds.person) {
       println(p)
     }
   }
