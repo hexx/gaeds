@@ -9,13 +9,15 @@ import com.google.appengine.api.datastore.Query.FilterOperator
 import com.google.appengine.api.datastore.Query.SortDirection
 import com.google.appengine.api.users.User
 
-class BaseProperty[T: Manifest](var __valueOfProperty: T) {
+class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifest[T]) {
   var __nameOfProperty: String = _
+  var __keyOfMapper: Key = _
   def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
   def __isSet = classOf[Set[_]].isAssignableFrom(__valueClass)
   def __isSerializable = classOf[Serializable].isAssignableFrom(__valueClass)
   def __isContentSerializable = classOf[Serializable].isAssignableFrom(__contentClass)
+  def __isMapper = classOf[Mapper[_]].isAssignableFrom(__valueClass)
   def __isUnindexed = false
   def __setToEntity(entity: Entity) = entity.setProperty(__nameOfProperty, __javaValueOfProperty)
 
@@ -43,6 +45,13 @@ class BaseProperty[T: Manifest](var __valueOfProperty: T) {
     }
     case s: Serializable => dumpToBlob(s)
     case _ => __valueOfProperty
+  }
+
+  def __getValueOfProperty: T = {
+    if (__isMapper && __valueOfProperty == null) {
+      __valueOfProperty = Datastore.get(__keyOfMapper)
+    }
+    __valueOfProperty
   }
 
   override def toString = __valueOfProperty.toString
@@ -82,7 +91,7 @@ case class PropertyOperator[T: ClassManifest](property: BaseProperty[T]) {
 }
 
 object Property {
-  implicit def propertyToValue[T](property: BaseProperty[T]): T = property.__valueOfProperty
+  implicit def propertyToValue[T](property: BaseProperty[T]): T = property.__getValueOfProperty
 
   implicit def shortBlobValueToProperty(value: ShortBlob) = Property(value)
   implicit def blobValueToProperty(value: Blob) = Property(value)

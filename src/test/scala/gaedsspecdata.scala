@@ -433,7 +433,7 @@ object SampleData {
       Seq(new PhoneNumber("1"), new PhoneNumber("2")),
       Seq("string1", "string2"),
       Seq(new Text("text1"), new Text("text2")),
-      Seq(Person("John", 15)))
+      Seq(Person("John", 15), Person("Mike", 10)))
 
   def setData =
     new SetData(
@@ -456,7 +456,7 @@ object SampleData {
       Set(new PhoneNumber("1"), new PhoneNumber("2")),
       Set("string1", "string2"),
       Set(new Text("text1"), new Text("text2")),
-      Set(Person("John", 15)))
+      Set(Person("John", 15), Person("Mike", 10)))
 
   def emptySeqData =
     new SeqData(

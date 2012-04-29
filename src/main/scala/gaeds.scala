@@ -29,28 +29,28 @@ object Datastore {
     def isDone() = underlying.isDone
   }
 
-  private def wrapGet[T <: Mapper[T]: ClassManifest](mapper: T, entity: Entity): T =
-    mapper.fromEntity(entity)
-  private def wrapGet[T <: Mapper[T]: ClassManifest](mapper: T, entities: java.util.Map[Key, Entity]): Iterable[T] =
-    entities.asScala.values.map(mapper.fromEntity(_))
+  private def wrapGet[T <: Mapper[T]: ClassManifest](entity: Entity): T =
+    createMapper(entity)
+  private def wrapGet[T <: Mapper[T]: ClassManifest](entities: java.util.Map[Key, Entity]): Iterable[T] =
+    entities.asScala.values.map(createMapper(_))
 
-  def get[T <: Mapper[T]: ClassManifest](mapper: T, key: Key): T =
-    wrapGet(mapper, service.get(key))
-  def get[T <: Mapper[T]: ClassManifest](mapper: T, keys: Key*): Iterable[T] =
-    wrapGet(mapper, service.get(keys.asJava))
-  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, key: Key): T =
-    wrapGet(mapper, service.get(txn, key))
-  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, keys: Key*): Iterable[T] =
-    wrapGet(mapper, service.get(txn, keys.asJava))
+  def get[T <: Mapper[T]: ClassManifest](key: Key): T =
+    wrapGet(service.get(key))
+  def get[T <: Mapper[T]: ClassManifest](keys: Key*): Iterable[T] =
+    wrapGet(service.get(keys.asJava))
+  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, key: Key): T =
+    wrapGet(service.get(txn, key))
+  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: Key*): Iterable[T] =
+    wrapGet(service.get(txn, keys.asJava))
 
-  def getAsync[T <: Mapper[T]: ClassManifest](mapper: T, key: Key): Future[T] =
-    FutureWrapper(asyncService.get(key), wrapGet(mapper, _: Entity)(implicitly[ClassManifest[T]]))
-  def getAsync[T <: Mapper[T]: ClassManifest](mapper: T, keys: Key*): Future[Iterable[T]] =
-    FutureWrapper(asyncService.get(keys.asJava), wrapGet(mapper, _: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
-  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, key: Key): Future[T] =
-    FutureWrapper(asyncService.get(txn, key), wrapGet(mapper, _: Entity)(implicitly[ClassManifest[T]]))
-  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, keys: Key*): Future[Iterable[T]] =
-    FutureWrapper(asyncService.get(txn, keys.asJava), wrapGet(mapper, _: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](key: Key): Future[T] =
+    FutureWrapper(asyncService.get(key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](keys: Key*): Future[Iterable[T]] =
+    FutureWrapper(asyncService.get(keys.asJava), wrapGet(_: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, key: Key): Future[T] =
+    FutureWrapper(asyncService.get(txn, key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: Key*): Future[Iterable[T]] =
+    FutureWrapper(asyncService.get(txn, keys.asJava), wrapGet(_: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
 
   private def wrapPut[T <: Mapper[T]](mapper: T)(key: Key) = {
     mapper.key = Option(key)
@@ -117,48 +117,10 @@ object Datastore {
     }
   }
   def transaction[T](block: => T): T = transaction((t: Transaction) => block)
-}
 
-abstract class Mapper[T <: Mapper[T]: ClassManifest] {
-  self: T =>
+  def companion[T: ClassManifest]: Object = Class.forName(implicitly[ClassManifest[T]].erasure.getName + "$").getField("MODULE$").get()
 
-  assignPropertyName()
-
-  var key: Option[Key] = None
-  var parentKey: Option[Key] = None
-
-  def kind = concreteClass.getName // override to customize
-
-  def concreteClass = implicitly[ClassManifest[T]].erasure
-
-  def put() = Datastore.put(this)
-  def put(txn: Transaction) = Datastore.put(txn, this)
-
-  def putAsync() = Datastore.putAsync(this)
-  def putAsync(txn: Transaction) = Datastore.putAsync(txn, this)
-
-  def get(key: Key) = Datastore.get(this, key)
-  def get(key: Key*) = Datastore.get(this, key:_*)
-  def get(txn: Transaction, key: Key) = Datastore.get(txn, this, key)
-  def get(txn: Transaction, key: Key*) = Datastore.get(txn, this, key:_*)
-
-  def getAsync(key: Key): Future[T] = Datastore.getAsync(this, key)
-  def getAsync(key: Key*): Future[Iterable[T]] = Datastore.getAsync(this, key:_*)
-  def getAsync(txn: Transaction, key: Key): Future[T] = Datastore.getAsync(txn, this, key)
-  def getAsync(txn: Transaction, key: Key*): Future[Iterable[T]] = Datastore.getAsync(txn, this, key:_*)
-
-  def query() = Datastore.query(this)
-  def query(ancestorKey: Key) = Datastore.query(this, ancestorKey)
-  def query(fetchOptions: FetchOptions) = Datastore.query(this, fetchOptions)
-  def query(ancestorKey: Key, fetchOptions: FetchOptions) =
-    Datastore.query(this, ancestorKey, fetchOptions)
-  def query(txn: Transaction) = Datastore.query(txn, this)
-  def query(txn: Transaction, ancestorKey: Key) = Datastore.query(txn, this, ancestorKey)
-  def query(txn: Transaction, fetchOptions: FetchOptions) = Datastore.query(txn, this, fetchOptions)
-  def query(txn: Transaction, ancestorKey: Key, fetchOptions: FetchOptions) =
-    Datastore.query(txn, this, ancestorKey, fetchOptions)
-
-  def fromEntity(entity: Entity): T = {
+  def createMapper[T <: Mapper[T]: ClassManifest](entity: Entity): T = {
     def loadFromBlob(b: Blob): Serializable = {
       val in = new ObjectInputStream(new ByteArrayInputStream(b.getBytes))
       val s = in.readObject.asInstanceOf[Serializable]
@@ -194,14 +156,20 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
         }
     }
 
+    val companionMapper = companion[T].asInstanceOf[T]
+    val concreteClass = implicitly[ClassManifest[T]].erasure
     val mapper = concreteClass.newInstance.asInstanceOf[T]
     for {
       (name, value) <- entity.getProperties.asScala
       field = concreteClass.getDeclaredField(name)
-      p = findProperty(name).get
+      p = companionMapper.findProperty(name).get
     } {
-      val v = scalaValueOfProperty(p)(value)
-      val p2 = if (p.__isUnindexed) UnindexedProperty(v) else Property(v)
+      val v = if (p.__isMapper) null else scalaValueOfProperty(p)(value)
+      val manifest = p.__manifest.asInstanceOf[Manifest[Any]]
+      val p2 = if (p.__isUnindexed) UnindexedProperty(v)(manifest) else Property(v)(manifest)
+      if (p.__isMapper) {
+        p2.__keyOfMapper = value.asInstanceOf[Key]
+      }
       field.setAccessible(true)
       field.set(mapper, p2)
     }
@@ -210,10 +178,52 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
     mapper.assignPropertyName()
     mapper
   }
+}
+
+abstract class Mapper[T <: Mapper[T]: ClassManifest] {
+  self: T =>
+
+  assignPropertyName()
+
+  var key: Option[Key] = None
+  var parentKey: Option[Key] = None
+
+  def kind = concreteClass.getName // override to customize
+
+  def concreteClass = implicitly[ClassManifest[T]].erasure
+
+  def put() = Datastore.put(this)
+  def put(txn: Transaction) = Datastore.put(txn, this)
+
+  def putAsync() = Datastore.putAsync(this)
+  def putAsync(txn: Transaction) = Datastore.putAsync(txn, this)
+
+  def get(key: Key) = Datastore.get(key)
+  def get(key: Key*) = Datastore.get(key:_*)
+  def get(txn: Transaction, key: Key) = Datastore.get(txn, key)
+  def get(txn: Transaction, key: Key*) = Datastore.get(txn, key:_*)
+
+  def getAsync(key: Key): Future[T] = Datastore.getAsync(key)
+  def getAsync(key: Key*): Future[Iterable[T]] = Datastore.getAsync(key:_*)
+  def getAsync(txn: Transaction, key: Key): Future[T] = Datastore.getAsync(txn, key)
+  def getAsync(txn: Transaction, key: Key*): Future[Iterable[T]] = Datastore.getAsync(txn, key:_*)
+
+  def query() = Datastore.query(this)
+  def query(ancestorKey: Key) = Datastore.query(this, ancestorKey)
+  def query(fetchOptions: FetchOptions) = Datastore.query(this, fetchOptions)
+  def query(ancestorKey: Key, fetchOptions: FetchOptions) =
+    Datastore.query(this, ancestorKey, fetchOptions)
+  def query(txn: Transaction) = Datastore.query(txn, this)
+  def query(txn: Transaction, ancestorKey: Key) = Datastore.query(txn, this, ancestorKey)
+  def query(txn: Transaction, fetchOptions: FetchOptions) = Datastore.query(txn, this, fetchOptions)
+  def query(txn: Transaction, ancestorKey: Key, fetchOptions: FetchOptions) =
+    Datastore.query(txn, this, ancestorKey, fetchOptions)
 
   def properties: Seq[BaseProperty[_]] = zipPropertyAndMethod.map(_._1)
 
   def findProperty(name: String) = properties.find(_.__nameOfProperty == name)
+
+  def fromEntity(entity: Entity): T = Datastore.createMapper(entity)
 
   def toEntity = {
     val entity = (key, parentKey) match {
@@ -240,7 +250,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
     } yield (p, m)
   }
 
-  private def assignPropertyName() {
+  def assignPropertyName() {
     for ((p, m) <- zipPropertyAndMethod) {
       p.__nameOfProperty = m.getName
     }

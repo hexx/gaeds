@@ -133,6 +133,25 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       printOptionData(d2)
       Datastore.delete(k)
     }
+    "put and get twice" in {
+      val d1 = data
+      val k1 = d1.put
+      val d2 = Data.get(k1)
+      val k2 = d2.put
+      val d3 = Data.get(k2)
+      putAndGetTest(k2, d1, d3)
+      Datastore.delete(k1)
+    }
+    "seq put and get twice" in {
+      val d1 = seqData
+      val k1 = d1.put
+      val d2 = SeqData.get(k1)
+      val k2 = d2.put
+      val d3 = SeqData.get(k2)
+      putAndGetTest(k2, d1, d3)
+      printSeqData(d3)
+      Datastore.delete(k1)
+    }
     "transaction sample" in {
       val d1 = data
       val k = d1.put
