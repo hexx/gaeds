@@ -11,7 +11,7 @@ import com.google.appengine.api.users.User
 
 class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifest[T]) {
   var __nameOfProperty: String = _
-  var __keyOfMapper: Key = _
+  var __keyOfMapper: Option[Key] = None
   def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
   def __isSet = classOf[Set[_]].isAssignableFrom(__valueClass)
@@ -44,12 +44,17 @@ class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifes
       case None => null
     }
     case s: Serializable => dumpToBlob(s)
-    case _ => __valueOfProperty
+    case _ => 
+      if (__isMapper) {
+        __keyOfMapper.get
+      } else {
+        __valueOfProperty
+      }
   }
 
   def __getValueOfProperty: T = {
     if (__isMapper && __valueOfProperty == null) {
-      __valueOfProperty = Datastore.get(__keyOfMapper)
+      __valueOfProperty = Datastore.get(__keyOfMapper.get)
     }
     __valueOfProperty
   }

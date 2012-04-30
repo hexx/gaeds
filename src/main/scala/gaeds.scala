@@ -168,14 +168,13 @@ object Datastore {
       val manifest = p.__manifest.asInstanceOf[Manifest[Any]]
       val p2 = if (p.__isUnindexed) UnindexedProperty(v)(manifest) else Property(v)(manifest)
       if (p.__isMapper) {
-        p2.__keyOfMapper = value.asInstanceOf[Key]
+        p2.__keyOfMapper = Option(value.asInstanceOf[Key])
       }
       field.setAccessible(true)
       field.set(mapper, p2)
     }
     mapper.key = Option(entity.getKey)
     mapper.parentKey = Option(entity.getParent)
-    mapper.assignPropertyName()
     mapper
   }
 }
@@ -226,10 +225,11 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
   def fromEntity(entity: Entity): T = Datastore.createMapper(entity)
 
   def toEntity = {
+    assignPropertyName()
     val entity = (key, parentKey) match {
-      case (Some(k), _      )  => new Entity(k)
+      case (Some(k), _       ) => new Entity(k)
       case (None,    Some(pk)) => new Entity(kind, pk)
-      case (None,    None   )  => new Entity(kind)
+      case (None,    None    ) => new Entity(kind)
     }
     assert(properties.size != 0, "define fields with Property[T]")
     properties foreach (_.__setToEntity(entity))

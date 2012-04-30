@@ -16,26 +16,26 @@ object Util {
 case class Person(name: String, age: Long)
 
 class Data(
-    val boolean: Property[Boolean],
-    val shortBlob: Property[ShortBlob],
-    val blob: Property[Blob],
-    val category: Property[Category],
-    val date: Property[Date],
-    val email: Property[Email],
-    val double: Property[Double],
-    val geoPt: Property[GeoPt],
-    val user: Property[User],
-    val long: Property[Long],
-    val blobKey: Property[BlobKey],
-    val keyValue: Property[Key],
-    val link: Property[Link],
-    val imHandle: Property[IMHandle],
-    val postalAddress: Property[PostalAddress],
-    val rating: Property[Rating],
-    val phoneNumber: Property[PhoneNumber],
-    val string: Property[String],
-    val text: Property[Text],
-    val person: Property[Person])
+    var boolean: Property[Boolean],
+    var shortBlob: Property[ShortBlob],
+    var blob: Property[Blob],
+    var category: Property[Category],
+    var date: Property[Date],
+    var email: Property[Email],
+    var double: Property[Double],
+    var geoPt: Property[GeoPt],
+    var user: Property[User],
+    var long: Property[Long],
+    var blobKey: Property[BlobKey],
+    var keyValue: Property[Key],
+    var link: Property[Link],
+    var imHandle: Property[IMHandle],
+    var postalAddress: Property[PostalAddress],
+    var rating: Property[Rating],
+    var phoneNumber: Property[PhoneNumber],
+    var string: Property[String],
+    var text: Property[Text],
+    var person: Property[Person])
   extends Mapper[Data] {
   def this() =
     this(
@@ -86,26 +86,26 @@ class Data(
 object Data extends Data
 
 class UnindexedData(
-    val boolean: UnindexedProperty[Boolean],
-    val shortBlob: UnindexedProperty[ShortBlob],
-    val blob: UnindexedProperty[Blob],
-    val category: UnindexedProperty[Category],
-    val date: UnindexedProperty[Date],
-    val email: UnindexedProperty[Email],
-    val double: UnindexedProperty[Double],
-    val geoPt: UnindexedProperty[GeoPt],
-    val user: UnindexedProperty[User],
-    val long: UnindexedProperty[Long],
-    val blobKey: UnindexedProperty[BlobKey],
-    val keyValue: UnindexedProperty[Key],
-    val link: UnindexedProperty[Link],
-    val imHandle: UnindexedProperty[IMHandle],
-    val postalAddress: UnindexedProperty[PostalAddress],
-    val rating: UnindexedProperty[Rating],
-    val phoneNumber: UnindexedProperty[PhoneNumber],
-    val string: UnindexedProperty[String],
-    val text: UnindexedProperty[Text],
-    val person: UnindexedProperty[Person])
+    var boolean: UnindexedProperty[Boolean],
+    var shortBlob: UnindexedProperty[ShortBlob],
+    var blob: UnindexedProperty[Blob],
+    var category: UnindexedProperty[Category],
+    var date: UnindexedProperty[Date],
+    var email: UnindexedProperty[Email],
+    var double: UnindexedProperty[Double],
+    var geoPt: UnindexedProperty[GeoPt],
+    var user: UnindexedProperty[User],
+    var long: UnindexedProperty[Long],
+    var blobKey: UnindexedProperty[BlobKey],
+    var keyValue: UnindexedProperty[Key],
+    var link: UnindexedProperty[Link],
+    var imHandle: UnindexedProperty[IMHandle],
+    var postalAddress: UnindexedProperty[PostalAddress],
+    var rating: UnindexedProperty[Rating],
+    var phoneNumber: UnindexedProperty[PhoneNumber],
+    var string: UnindexedProperty[String],
+    var text: UnindexedProperty[Text],
+    var person: UnindexedProperty[Person])
   extends Mapper[UnindexedData] {
   def this() =
     this(
@@ -156,26 +156,26 @@ class UnindexedData(
 object UnindexedData extends UnindexedData
 
 class SeqData(
-    val boolean: Property[Seq[Boolean]],
-    val shortBlob: Property[Seq[ShortBlob]],
-    val blob: Property[Seq[Blob]],
-    val category: Property[Seq[Category]],
-    val date: Property[Seq[Date]],
-    val email: Property[Seq[Email]],
-    val double: Property[Seq[Double]],
-    val geoPt: Property[Seq[GeoPt]],
-    val user: Property[Seq[User]],
-    val long: Property[Seq[Long]],
-    val blobKey: Property[Seq[BlobKey]],
-    val keyValue: Property[Seq[Key]],
-    val link: Property[Seq[Link]],
-    val imHandle: Property[Seq[IMHandle]],
-    val postalAddress: Property[Seq[PostalAddress]],
-    val rating: Property[Seq[Rating]],
-    val phoneNumber: Property[Seq[PhoneNumber]],
-    val string: Property[Seq[String]],
-    val text: Property[Seq[Text]],
-    val person: Property[Seq[Person]])
+    var boolean: Property[Seq[Boolean]],
+    var shortBlob: Property[Seq[ShortBlob]],
+    var blob: Property[Seq[Blob]],
+    var category: Property[Seq[Category]],
+    var date: Property[Seq[Date]],
+    var email: Property[Seq[Email]],
+    var double: Property[Seq[Double]],
+    var geoPt: Property[Seq[GeoPt]],
+    var user: Property[Seq[User]],
+    var long: Property[Seq[Long]],
+    var blobKey: Property[Seq[BlobKey]],
+    var keyValue: Property[Seq[Key]],
+    var link: Property[Seq[Link]],
+    var imHandle: Property[Seq[IMHandle]],
+    var postalAddress: Property[Seq[PostalAddress]],
+    var rating: Property[Seq[Rating]],
+    var phoneNumber: Property[Seq[PhoneNumber]],
+    var string: Property[Seq[String]],
+    var text: Property[Seq[Text]],
+    var person: Property[Seq[Person]])
   extends Mapper[SeqData] {
   def this() =
     this(
@@ -226,26 +226,26 @@ class SeqData(
 object SeqData extends SeqData
 
 class SetData(
-    val boolean: Property[Set[Boolean]],
-    val shortBlob: Property[Set[ShortBlob]],
-    val blob: Property[Set[Blob]],
-    val category: Property[Set[Category]],
-    val date: Property[Set[Date]],
-    val email: Property[Set[Email]],
-    val double: Property[Set[Double]],
-    val geoPt: Property[Set[GeoPt]],
-    val user: Property[Set[User]],
-    val long: Property[Set[Long]],
-    val blobKey: Property[Set[BlobKey]],
-    val keyValue: Property[Set[Key]],
-    val link: Property[Set[Link]],
-    val imHandle: Property[Set[IMHandle]],
-    val postalAddress: Property[Set[PostalAddress]],
-    val rating: Property[Set[Rating]],
-    val phoneNumber: Property[Set[PhoneNumber]],
-    val string: Property[Set[String]],
-    val text: Property[Set[Text]],
-    val person: Property[Set[Person]])
+    var boolean: Property[Set[Boolean]],
+    var shortBlob: Property[Set[ShortBlob]],
+    var blob: Property[Set[Blob]],
+    var category: Property[Set[Category]],
+    var date: Property[Set[Date]],
+    var email: Property[Set[Email]],
+    var double: Property[Set[Double]],
+    var geoPt: Property[Set[GeoPt]],
+    var user: Property[Set[User]],
+    var long: Property[Set[Long]],
+    var blobKey: Property[Set[BlobKey]],
+    var keyValue: Property[Set[Key]],
+    var link: Property[Set[Link]],
+    var imHandle: Property[Set[IMHandle]],
+    var postalAddress: Property[Set[PostalAddress]],
+    var rating: Property[Set[Rating]],
+    var phoneNumber: Property[Set[PhoneNumber]],
+    var string: Property[Set[String]],
+    var text: Property[Set[Text]],
+    var person: Property[Set[Person]])
   extends Mapper[SetData] {
   def this() =
     this(
@@ -296,26 +296,26 @@ class SetData(
 object SetData extends SetData
 
 class OptionData(
-    val boolean: Property[Option[Boolean]],
-    val shortBlob: Property[Option[ShortBlob]],
-    val blob: Property[Option[Blob]],
-    val category: Property[Option[Category]],
-    val date: Property[Option[Date]],
-    val email: Property[Option[Email]],
-    val double: Property[Option[Double]],
-    val geoPt: Property[Option[GeoPt]],
-    val user: Property[Option[User]],
-    val long: Property[Option[Long]],
-    val blobKey: Property[Option[BlobKey]],
-    val keyValue: Property[Option[Key]],
-    val link: Property[Option[Link]],
-    val imHandle: Property[Option[IMHandle]],
-    val postalAddress: Property[Option[PostalAddress]],
-    val rating: Property[Option[Rating]],
-    val phoneNumber: Property[Option[PhoneNumber]],
-    val string: Property[Option[String]],
-    val text: Property[Option[Text]],
-    val person: Property[Option[Person]])
+    var boolean: Property[Option[Boolean]],
+    var shortBlob: Property[Option[ShortBlob]],
+    var blob: Property[Option[Blob]],
+    var category: Property[Option[Category]],
+    var date: Property[Option[Date]],
+    var email: Property[Option[Email]],
+    var double: Property[Option[Double]],
+    var geoPt: Property[Option[GeoPt]],
+    var user: Property[Option[User]],
+    var long: Property[Option[Long]],
+    var blobKey: Property[Option[BlobKey]],
+    var keyValue: Property[Option[Key]],
+    var link: Property[Option[Link]],
+    var imHandle: Property[Option[IMHandle]],
+    var postalAddress: Property[Option[PostalAddress]],
+    var rating: Property[Option[Rating]],
+    var phoneNumber: Property[Option[PhoneNumber]],
+    var string: Property[Option[String]],
+    var text: Property[Option[Text]],
+    var person: Property[Option[Person]])
   extends Mapper[OptionData] {
   def this() =
     this(
@@ -551,7 +551,7 @@ object SampleData {
       None)
 
   def checkUnindexedProperty(ds: UnindexedData) = {
-    val entity = ds.toEntity
+    var entity = ds.toEntity
     entity.isUnindexedProperty("boolean") && 
     entity.isUnindexedProperty("shortBlob") && 
     entity.isUnindexedProperty("blob") &&
