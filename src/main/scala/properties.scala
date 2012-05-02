@@ -14,10 +14,10 @@ class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifes
   var __keyOfMapper: Option[Key] = None
   def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
-  def __isSet = classOf[Set[_]].isAssignableFrom(__valueClass)
   def __isSerializable = classOf[Serializable].isAssignableFrom(__valueClass)
   def __isContentSerializable = classOf[Serializable].isAssignableFrom(__contentClass)
   def __isMapper = classOf[Mapper[_]].isAssignableFrom(__valueClass)
+  def __isContentMapper = classOf[Mapper[_]].isAssignableFrom(__contentClass)
   def __isUnindexed = false
   def __setToEntity(entity: Entity) = entity.setProperty(__nameOfProperty, __javaValueOfProperty)
 
@@ -27,12 +27,6 @@ class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifes
         l.asInstanceOf[Seq[Serializable]].map(dumpToBlob).asJava
       } else {
         l.asJava
-      }
-    case s: Set[_] =>
-      if (__isContentSerializable) {
-        s.asInstanceOf[Set[Serializable]].map(dumpToBlob).asJava
-      } else {
-        s.asJava
       }
     case o: Option[_] => o match {
       case Some(v) =>
@@ -140,27 +134,6 @@ object Property {
   implicit def textSeqValueToProperty(value: Seq[Text]) = Property(value)
   implicit def serializableSeqValueToProperty[T <: Serializable: Manifest](value: Seq[T]) = Property(value)
 
-  implicit def shortBlobSetValueToProperty(value: Set[ShortBlob]) = Property(value)
-  implicit def blobSetValueToProperty(value: Set[Blob]) = Property(value)
-  implicit def categorySetValueToProperty(value: Set[Category]) = Property(value)
-  implicit def booleanSetValueToProperty(value: Set[Boolean]) = Property(value)
-  implicit def dateSetValueToProperty(value: Set[Date]) = Property(value)
-  implicit def emailSetValueToProperty(value: Set[Email]) = Property(value)
-  implicit def doubleSetValueToProperty(value: Set[Double]) = Property(value)
-  implicit def geoPtSetValueToProperty(value: Set[GeoPt]) = Property(value)
-  implicit def userSetValueToProperty(value: Set[User]) = Property(value)
-  implicit def longSetValueToProperty(value: Set[Long]) = Property(value)
-  implicit def blobKeySetValueToProperty(value: Set[BlobKey]) = Property(value)
-  implicit def keySetValueToProperty(value: Set[Key]) = Property(value)
-  implicit def linkSetValueToProperty(value: Set[Link]) = Property(value)
-  implicit def imHandleSetValueToProperty(value: Set[IMHandle]) = Property(value)
-  implicit def postalAddressSetValueToProperty(value: Set[PostalAddress]) = Property(value)
-  implicit def ratingSetValueToProperty(value: Set[Rating]) = Property(value)
-  implicit def phoneNumberSetValueToProperty(value: Set[PhoneNumber]) = Property(value)
-  implicit def stringSetValueToProperty(value: Set[String]) = Property(value)
-  implicit def textSetValueToProperty(value: Set[Text]) = Property(value)
-  implicit def serializableSetValueToProperty[T <: Serializable: Manifest](value: Set[T]) = Property(value)
-
   implicit def shortBlobOptionValueToProperty(value: Option[ShortBlob]) = Property(value)
   implicit def blobOptionValueToProperty(value: Option[Blob]) = Property(value)
   implicit def categoryOptionValueToProperty(value: Option[Category]) = Property(value)
@@ -223,27 +196,6 @@ object Property {
   implicit def stringSeqValueToUnindexedProperty(value: Seq[String]) = UnindexedProperty(value)
   implicit def textSeqValueToUnindexedProperty(value: Seq[Text]) = UnindexedProperty(value)
   implicit def serializableSeqValueToUnindexedProperty[T <: Serializable: Manifest](value: Seq[T]) = UnindexedProperty(value)
-
-  implicit def shortBlobSetValueToUnindexedProperty(value: Set[ShortBlob]) = UnindexedProperty(value)
-  implicit def blobSetValueToUnindexedProperty(value: Set[Blob]) = UnindexedProperty(value)
-  implicit def categorySetValueToUnindexedProperty(value: Set[Category]) = UnindexedProperty(value)
-  implicit def booleanSetValueToUnindexedProperty(value: Set[Boolean]) = UnindexedProperty(value)
-  implicit def dateSetValueToUnindexedProperty(value: Set[Date]) = UnindexedProperty(value)
-  implicit def emailSetValueToUnindexedProperty(value: Set[Email]) = UnindexedProperty(value)
-  implicit def doubleSetValueToUnindexedProperty(value: Set[Double]) = UnindexedProperty(value)
-  implicit def geoPtSetValueToUnindexedProperty(value: Set[GeoPt]) = UnindexedProperty(value)
-  implicit def userSetValueToUnindexedProperty(value: Set[User]) = UnindexedProperty(value)
-  implicit def longSetValueToUnindexedProperty(value: Set[Long]) = UnindexedProperty(value)
-  implicit def blobKeySetValueToUnindexedProperty(value: Set[BlobKey]) = UnindexedProperty(value)
-  implicit def keySetValueToUnindexedProperty(value: Set[Key]) = UnindexedProperty(value)
-  implicit def linkSetValueToUnindexedProperty(value: Set[Link]) = UnindexedProperty(value)
-  implicit def imHandleSetValueToUnindexedProperty(value: Set[IMHandle]) = UnindexedProperty(value)
-  implicit def postalAddressSetValueToUnindexedProperty(value: Set[PostalAddress]) = UnindexedProperty(value)
-  implicit def ratingSetValueToUnindexedProperty(value: Set[Rating]) = UnindexedProperty(value)
-  implicit def phoneNumberSetValueToUnindexedProperty(value: Set[PhoneNumber]) = UnindexedProperty(value)
-  implicit def stringSetValueToUnindexedProperty(value: Set[String]) = UnindexedProperty(value)
-  implicit def textSetValueToUnindexedProperty(value: Set[Text]) = UnindexedProperty(value)
-  implicit def serializableSetValueToUnindexedProperty[T <: Serializable: Manifest](value: Set[T]) = UnindexedProperty(value)
 
   implicit def shortBlobOptionValueToUnindexedProperty(value: Option[ShortBlob]) = UnindexedProperty(value)
   implicit def blobOptionValueToUnindexedProperty(value: Option[Blob]) = UnindexedProperty(value)

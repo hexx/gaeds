@@ -1,9 +1,10 @@
 package com.github.hexx.gaeds
 
 import java.io.{ ByteArrayInputStream, ObjectInputStream }
-import java.lang.reflect.Method
+import java.lang.reflect.{ Field, Method }
 import java.util.concurrent.{ Future, TimeUnit }
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 import com.google.appengine.api.datastore._
 import com.google.appengine.api.datastore.Query.FilterOperator
 import com.google.appengine.api.datastore.Query.SortDirection
@@ -121,39 +122,39 @@ object Datastore {
   def companion[T: ClassManifest]: Object = Class.forName(implicitly[ClassManifest[T]].erasure.getName + "$").getField("MODULE$").get()
 
   def createMapper[T <: Mapper[T]: ClassManifest](entity: Entity): T = {
-    def loadFromBlob(b: Blob): Serializable = {
+    val fieldAndKeys = new ListBuffer[(Field, Key)]
+    val fieldAndSeqKeys = new ListBuffer[(Field, Seq[Key])]
+    val fieldAndOptionKey = new ListBuffer[(Field, Key)]
+
+    def loadSerializable(b: Blob) = {
       val in = new ObjectInputStream(new ByteArrayInputStream(b.getBytes))
       val s = in.readObject.asInstanceOf[Serializable]
       in.close()
       s
     }
 
-    def scalaValueOfProperty(p: BaseProperty[_]): Any => Any = {
-      case l: java.util.ArrayList[_] =>
-        if (p.__isContentSerializable) {
-          l.asInstanceOf[java.util.ArrayList[Blob]].asScala.map(loadFromBlob)
+    def scalaValueOfProperty(p: BaseProperty[_], value: Any) = {
+      if (p.__isSeq) {
+        if (value == null) {
+          Seq()
         } else {
-          l.asScala
-        }
-      case s: java.util.HashSet[_] =>
-        if (p.__isContentSerializable) {
-          s.asInstanceOf[java.util.HashSet[Blob]].asScala.map(loadFromBlob)
-        } else {
-          s.asScala
-        }
-      case null if p.__isSeq => Seq()
-      case null if p.__isSet => Set()
-      case b: Blob if p.__isSerializable && !p.__isOption => loadFromBlob(b)
-      case v =>
-        if (p.__isOption) {
           if (p.__isContentSerializable) {
-            Option(v).asInstanceOf[Option[Blob]].map(loadFromBlob)
+            value.asInstanceOf[java.util.ArrayList[Blob]].asScala.map(loadSerializable)
           } else {
-            Option(v)
+            value.asInstanceOf[java.util.ArrayList[_]].asScala
           }
-        } else {
-          v
         }
+      } else if (p.__isOption) {
+        if (p.__isContentSerializable) {
+          Option(value).asInstanceOf[Option[Blob]].map(loadSerializable)
+        } else {
+          Option(value)
+        }
+      } else if (p.__isSerializable) {
+        loadSerializable(value.asInstanceOf[Blob])
+      } else {
+        value
+      }
     }
 
     val companionMapper = companion[T].asInstanceOf[T]
@@ -164,14 +165,20 @@ object Datastore {
       field = concreteClass.getDeclaredField(name)
       p = companionMapper.findProperty(name).get
     } {
-      val v = if (p.__isMapper) null else scalaValueOfProperty(p)(value)
-      val manifest = p.__manifest.asInstanceOf[Manifest[Any]]
-      val p2 = if (p.__isUnindexed) UnindexedProperty(v)(manifest) else Property(v)(manifest)
       if (p.__isMapper) {
-        p2.__keyOfMapper = Option(value.asInstanceOf[Key])
+        fieldAndKeys += field -> value.asInstanceOf[Key]
+      } else if (p.__isSeq && p.__isContentMapper && value != null) {
+        fieldAndSeqKeys += field -> value.asInstanceOf[java.util.ArrayList[Key]].asScala
+      } else {
+        val v = if (p.__isMapper) null else scalaValueOfProperty(p, value)
+        val manifest = p.__manifest.asInstanceOf[Manifest[Any]]
+        val p2 = if (p.__isUnindexed) UnindexedProperty(v)(manifest) else Property(v)(manifest)
+        if (p.__isMapper) {
+          p2.__keyOfMapper = Option(value.asInstanceOf[Key])
+        }
+        field.setAccessible(true)
+        field.set(mapper, p2)
       }
-      field.setAccessible(true)
-      field.set(mapper, p2)
     }
     mapper.key = Option(entity.getKey)
     mapper.parentKey = Option(entity.getParent)
