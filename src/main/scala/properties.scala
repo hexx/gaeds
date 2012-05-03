@@ -11,7 +11,6 @@ import com.google.appengine.api.users.User
 
 class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifest[T]) {
   var __nameOfProperty: String = _
-  var __keyOfMapper: Option[Key] = None
   def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
   def __isSerializable = classOf[Serializable].isAssignableFrom(__valueClass)
@@ -38,19 +37,7 @@ class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifes
       case None => null
     }
     case s: Serializable => dumpToBlob(s)
-    case _ => 
-      if (__isMapper) {
-        __keyOfMapper.get
-      } else {
-        __valueOfProperty
-      }
-  }
-
-  def __getValueOfProperty: T = {
-    if (__isMapper && __valueOfProperty == null) {
-      __valueOfProperty = Datastore.get(__keyOfMapper.get)
-    }
-    __valueOfProperty
+    case _ => __valueOfProperty
   }
 
   override def toString = __valueOfProperty.toString
@@ -90,7 +77,7 @@ case class PropertyOperator[T: ClassManifest](property: BaseProperty[T]) {
 }
 
 object Property {
-  implicit def propertyToValue[T](property: BaseProperty[T]): T = property.__getValueOfProperty
+  implicit def propertyToValue[T](property: BaseProperty[T]): T = property.__valueOfProperty
 
   implicit def shortBlobValueToProperty(value: ShortBlob) = Property(value)
   implicit def blobValueToProperty(value: Blob) = Property(value)

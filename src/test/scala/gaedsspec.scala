@@ -71,7 +71,7 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     "multi-put and multi-get" in {
       val ds1 = Seq(data, data, data)
       val ks = Datastore.put(ds1:_*)
-      val ds2 = Data.get(ks:_*)
+      val ds2 = Data.get(ks:_*).values
       for (((k, d1), d2) <- ks zip ds1 zip ds2) {
         putAndGetTest(k, d1, d2)
       }
