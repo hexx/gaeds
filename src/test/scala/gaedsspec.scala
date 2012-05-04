@@ -40,11 +40,11 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     helper.tearDown()
   }
 
-  def putTest[T <: Mapper[T]](k: Key, d: T) = {
-    k.getId must not be 0
+  def putTest[T <: Mapper[T]](k: TypeSafeKey[T], d: T) = {
+    k.id must not be 0
     d.key.get must be === k
   }
-  def putAndGetTest[T <: Mapper[T]](k: Key, d1: T, d2: T) = {
+  def putAndGetTest[T <: Mapper[T]](k: TypeSafeKey[T], d1: T, d2: T) = {
     putTest(k, d1)
     d1 must be === d2
     d1.key.get must be === d2.key.get
@@ -71,8 +71,8 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     "multi-put and multi-get" in {
       val ds1 = Seq(data, data, data)
       val ks = Datastore.put(ds1:_*)
-      val ds2 = Data.get(ks:_*).values
-      for (((k, d1), d2) <- ks zip ds1 zip ds2) {
+      val ds2 = Data.get(ks:_*).values.toSeq
+      for (((k, d1), d2) <- ks zip ds1.sortWith(_.key.get < _.key.get) zip ds2.sortWith(_.key.get < _.key.get)) {
         putAndGetTest(k, d1, d2)
       }
       Datastore.delete(ks:_*)

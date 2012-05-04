@@ -3,8 +3,8 @@ package com.github.hexx.gaeds
 import java.io.{ ByteArrayInputStream, ObjectInputStream }
 import java.lang.reflect.{ Field, Method }
 import java.util.concurrent.{ Future, TimeUnit }
-import scala.collection.Map
 import scala.collection.JavaConverters._
+import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import com.google.appengine.api.datastore._
 import com.google.appengine.api.datastore.Query.FilterOperator
@@ -13,15 +13,6 @@ import com.google.appengine.api.datastore.Query.SortDirection
 object Datastore {
   val service = DatastoreServiceFactory.getDatastoreService
   val asyncService = DatastoreServiceFactory.getAsyncDatastoreService
-
-  def allocateIdRange(range: KeyRange) = service.allocateIdRange(range)
-  def allocateIds(parent: Key, kind: String, num: Long) = service.allocateIds(parent, kind, num)
-  def allocateIds(kind: String, num: Long) = service.allocateIds(kind, num)
-
-  def beginTransaction() = service.beginTransaction()
-  def getActiveTransactions() = service.getActiveTransactions()
-  def getCurrentTransaction() = service.getCurrentTransaction()
-  def getCurrentTransaction(returnedIfNoTxn: Transaction) = service.getCurrentTransaction(returnedIfNoTxn)
 
   case class FutureWrapper[T, U](underlying: Future[T], f: T => U) extends Future[U] {
     def	cancel(mayInterruptIfRunning: Boolean) = underlying.cancel(mayInterruptIfRunning)
@@ -33,61 +24,61 @@ object Datastore {
 
   private def wrapGet[T <: Mapper[T]: ClassManifest](entity: Entity): T =
     createMapper(entity)
-  private def wrapGet[T <: Mapper[T]: ClassManifest](entities: java.util.Map[Key, Entity]): Map[Key, T] =
-    entities.asScala.mapValues(createMapper(_))
+  private def wrapGet[T <: Mapper[T]: ClassManifest](entities: java.util.Map[Key, Entity]): Map[TypeSafeKey[T], T] =
+    entities.asScala.map(v => (TypeSafeKey(v._1), createMapper(v._2)))
 
-  def get[T <: Mapper[T]: ClassManifest](key: Key): T =
-    wrapGet(service.get(key))
-  def get[T <: Mapper[T]: ClassManifest](keys: Key*): Map[Key, T] =
-    wrapGet(service.get(keys.asJava))
-  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, key: Key): T =
-    wrapGet(service.get(txn, key))
-  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: Key*): Map[Key, T] =
-    wrapGet(service.get(txn, keys.asJava))
+  def get[T <: Mapper[T]: ClassManifest](key: TypeSafeKey[T]): T =
+    wrapGet(service.get(key.key))
+  def get[T <: Mapper[T]: ClassManifest](keys: TypeSafeKey[T]*): Map[TypeSafeKey[T], T] =
+    wrapGet(service.get(keys.map(_.key).asJava))
+  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, key: TypeSafeKey[T]): T =
+    wrapGet(service.get(txn, key.key))
+  def get[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: TypeSafeKey[T]*): Map[TypeSafeKey[T], T] =
+    wrapGet(service.get(txn, keys.map(_.key).asJava))
 
-  def getAsync[T <: Mapper[T]: ClassManifest](key: Key): Future[T] =
-    FutureWrapper(asyncService.get(key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
-  def getAsync[T <: Mapper[T]: ClassManifest](keys: Key*): Future[Map[Key, T]] =
-    FutureWrapper(asyncService.get(keys.asJava), wrapGet(_: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
-  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, key: Key): Future[T] =
-    FutureWrapper(asyncService.get(txn, key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
-  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: Key*): Future[Map[Key, T]] =
-    FutureWrapper(asyncService.get(txn, keys.asJava), wrapGet(_: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](key: TypeSafeKey[T]): Future[T] =
+    FutureWrapper(asyncService.get(key.key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](keys: TypeSafeKey[T]*): Future[Map[TypeSafeKey[T], T]] =
+    FutureWrapper(asyncService.get(keys.map(_.key).asJava), wrapGet(_: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, key: TypeSafeKey[T]): Future[T] =
+    FutureWrapper(asyncService.get(txn, key.key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
+  def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: TypeSafeKey[T]*): Future[Map[TypeSafeKey[T], T]] =
+    FutureWrapper(asyncService.get(txn, keys.map(_.key).asJava), wrapGet(_: java.util.Map[Key, Entity])(implicitly[ClassManifest[T]]))
 
-  private def wrapPut[T <: Mapper[T]](mapper: T)(key: Key) = {
-    mapper.key = Option(key)
-    key
+  private def wrapPut[T <: Mapper[T]: ClassManifest](mapper: T)(key: Key) = {
+    mapper.key = Option(TypeSafeKey(key))
+    TypeSafeKey(key)
   }
-  private def wrapPut[T <: Mapper[T]](mappers: T*)(keys: java.util.List[Key]) = {
+  private def wrapPut[T <: Mapper[T]: ClassManifest](mappers: T*)(keys: java.util.List[Key]) = {
     for ((mapper, key) <- mappers zip keys.asScala) {
-      mapper.key = Option(key)
+      mapper.key = Option(TypeSafeKey(key))
     }
-    keys.asScala
+    keys.asScala.map(TypeSafeKey(_))
   }
 
-  def put[T <: Mapper[T]](mapper: T): Key =
+  def put[T <: Mapper[T]: ClassManifest](mapper: T) =
     wrapPut(mapper)(service.put(mapper.toEntity))
-  def put[T <: Mapper[T]](mappers: T*): Seq[Key] =
+  def put[T <: Mapper[T]: ClassManifest](mappers: T*) =
     wrapPut(mappers:_*)(service.put(mappers.map(_.toEntity).asJava))
-  def put[T <: Mapper[T]](txn: Transaction, mapper: T): Key =
+  def put[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T) =
     wrapPut(mapper)(service.put(txn, mapper.toEntity))
-  def put[T <: Mapper[T]](txn: Transaction, mappers: T*): Seq[Key] =
+  def put[T <: Mapper[T]: ClassManifest](txn: Transaction, mappers: T*) =
     wrapPut(mappers:_*)(service.put(txn, mappers.map(_.toEntity).asJava))
 
-  def putAsync[T <: Mapper[T]](mapper: T): Future[Key] =
+  def putAsync[T <: Mapper[T]: ClassManifest](mapper: T) =
     FutureWrapper(asyncService.put(mapper.toEntity), wrapPut(mapper) _)
-  def putAsync[T <: Mapper[T]](mappers: T*): Future[Seq[Key]] =
+  def putAsync[T <: Mapper[T]: ClassManifest](mappers: T*) =
     FutureWrapper(asyncService.put(mappers.map(_.toEntity).asJava), wrapPut(mappers:_*) _)
-  def putAsync[T <: Mapper[T]](txn: Transaction, mapper: T): Future[Key] =
+  def putAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T) =
     FutureWrapper(asyncService.put(txn, mapper.toEntity), wrapPut(mapper) _)
-  def putAsync[T <: Mapper[T]](txn: Transaction, mappers: T*): Future[Seq[Key]] =
+  def putAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mappers: T*) =
     FutureWrapper(asyncService.put(txn, mappers.map(_.toEntity).asJava), wrapPut(mappers:_*) _)
 
-  def delete(keys: Key*) = service.delete(keys:_*)
-  def delete(txn: Transaction, keys: Key*) = service.delete(txn, keys:_*)
+  def delete[T <: Mapper[T]](keys: TypeSafeKey[T]*) = service.delete(keys.map(_.key):_*)
+  def delete[T <: Mapper[T]](txn: Transaction, keys: TypeSafeKey[T]*) = service.delete(txn, keys.map(_.key):_*)
 
-  def deleteAsync(keys: Key*) = asyncService.delete(keys:_*)
-  def deleteAsync(txn: Transaction, keys: Key*) = asyncService.delete(txn, keys:_*)
+  def deleteAsync[T <: Mapper[T]](keys: TypeSafeKey[T]*) = asyncService.delete(keys.map(_.key):_*)
+  def deleteAsync[T <: Mapper[T]](txn: Transaction, keys: TypeSafeKey[T]*) = asyncService.delete(txn, keys.map(_.key):_*)
 
   def query[T <: Mapper[T]: ClassManifest](mapper: T) =
     new TypeSafeQuery(None, mapper, None)
@@ -106,21 +97,8 @@ object Datastore {
   def query[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, ancestorKey: Key, fetchOptions: FetchOptions) =
     new TypeSafeQuery(Some(txn), mapper, Some(ancestorKey), fetchOptions)
 
-  def transaction[T](block: Transaction => T): T = {
-    val t = service.beginTransaction
-    try {
-      val res = block(t)
-      t.commit()
-      res
-    } finally {
-      if (t.isActive) {
-        t.rollback()
-      }
-    }
-  }
-  def transaction[T](block: => T): T = transaction((t: Transaction) => block)
-
-  def companion[T: ClassManifest]: Object = Class.forName(implicitly[ClassManifest[T]].erasure.getName + "$").getField("MODULE$").get()
+  def companion[T](implicit classManifest: ClassManifest[T]): Object = Class.forName(classManifest.erasure.getName + "$").getField("MODULE$").get()
+  def mapperCompanion[T <: Mapper[T]: ClassManifest]: T = companion.asInstanceOf[T]
 
   def createMapper[T <: Mapper[T]: ClassManifest](entity: Entity): T = {
     def loadSerializable(b: Blob) = {
@@ -149,37 +127,121 @@ object Datastore {
       case _ => value
     }
 
-    val fieldAndKeys = new ListBuffer[(Field, Key)]
-    val fieldAndSeqKeys = new ListBuffer[(Field, Seq[Key])]
-    val fieldAndOptionKey = new ListBuffer[(Field, Key)]
-    val companionMapper = companion[T].asInstanceOf[T]
+    def createPropertyAndSetToField(m: Mapper[_], f: Field, p: BaseProperty[_], v: Any) {
+      val manifest = p.__manifest.asInstanceOf[Manifest[Any]]
+      val p2 =
+        if (p.__isUnindexed) {
+          UnindexedProperty(v)(manifest)
+        } else {
+          Property(v)(manifest)
+        }
+      p2.__isModified = false
+      f.setAccessible(true)
+      f.set(m, p2)
+    }
+
+    val fieldAndKeys = new ListBuffer[(Field, BaseProperty[_], Key)]
+    val fieldAndSeqKeys = new ListBuffer[(Field, BaseProperty[_], Seq[Key])]
+    val fieldAndOptionKey = new ListBuffer[(Field, BaseProperty[_], Key)]
     val concreteClass = implicitly[ClassManifest[T]].erasure
     val mapper = concreteClass.newInstance.asInstanceOf[T]
     for {
       (name, value) <- entity.getProperties.asScala
       field = concreteClass.getDeclaredField(name)
-      p = companionMapper.findProperty(name).get
+      p = Datastore.mapperCompanion.findProperty(name).get
     } {
       if (p.__isMapper) {
-        fieldAndKeys += field -> value.asInstanceOf[Key]
+        fieldAndKeys += ((field, p, value.asInstanceOf[Key]))
       } else if (p.__isSeq && p.__isContentMapper && value != null) {
-        fieldAndSeqKeys += field -> value.asInstanceOf[java.util.ArrayList[Key]].asScala
+        fieldAndSeqKeys += ((field, p, value.asInstanceOf[java.util.ArrayList[Key]].asScala))
       } else if (p.__isOption && p.__isContentMapper && value != null) {
-        fieldAndOptionKey += field -> value.asInstanceOf[Key]
+        fieldAndOptionKey += ((field, p, value.asInstanceOf[Key]))
       } else {
-        val v = scalaValueOfProperty(p, value)
-        val manifest = p.__manifest.asInstanceOf[Manifest[Any]]
-        val p2 = if (p.__isUnindexed) UnindexedProperty(v)(manifest) else Property(v)(manifest)
-        field.setAccessible(true)
-        field.set(mapper, p2)
+        createPropertyAndSetToField(mapper, field, p, scalaValueOfProperty(p, value))
       }
     }
-    val keys = fieldAndKeys.map(_._2) ++ fieldAndSeqKeys.flatMap(_._2) ++ fieldAndOptionKey.map(_._2)
-    val entities = Datastore.service.get(keys.asJava)
-    mapper.key = Option(entity.getKey)
-    mapper.parentKey = Option(entity.getParent)
+    val keys = fieldAndKeys.map(_._3) ++ fieldAndSeqKeys.flatMap(_._3) ++ fieldAndOptionKey.map(_._3)
+    val entities = Datastore.service.get(keys.asJava).asScala
+    for ((f, p, k) <- fieldAndKeys) {
+      createPropertyAndSetToField(mapper, f, p, createMapper(entities(k)))
+    }
+    for ((f, p, ks) <- fieldAndSeqKeys) {
+      createPropertyAndSetToField(mapper, f, p, ks.map(k => createMapper(entities(k))))
+    }
+    for ((f, p, k) <- fieldAndOptionKey) {
+      createPropertyAndSetToField(mapper, f, p, Option(createMapper(entities(k))))
+    }
+    mapper.key = Option(TypeSafeKey(entity.getKey))
     mapper
   }
+
+  // Transaction
+  def beginTransaction() = service.beginTransaction()
+  def activeTransactions() = service.getActiveTransactions()
+  def currentTransaction() = service.getCurrentTransaction()
+  def currentTransaction(returnedIfNoTxn: Transaction) = service.getCurrentTransaction(returnedIfNoTxn)
+
+  def transaction[T](block: Transaction => T): T = {
+    val t = service.beginTransaction
+    try {
+      val res = block(t)
+      t.commit()
+      res
+    } finally {
+      if (t.isActive) {
+        t.rollback()
+      }
+    }
+  }
+  def transaction[T](block: => T): T = transaction((t: Transaction) => block)
+
+  // Key
+  def allocateIdRange[T <: Mapper[T]](range: TypeSafeKeyRange[T]) =
+    service.allocateIdRange(range.range)
+
+  def allocateIds[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](parent: TypeSafeKey[U], num: Long): TypeSafeKeyRange[T] =
+    TypeSafeKeyRange(service.allocateIds(mapperCompanion[T].kind, num))
+  def allocateIds[T <: Mapper[T]: ClassManifest](num: Long): TypeSafeKeyRange[T] =
+    TypeSafeKeyRange(service.allocateIds(mapperCompanion[T].kind, num))
+
+  def allocateId[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](parent: TypeSafeKey[U]): TypeSafeKey[T] =
+    allocateIds(parent, 1).iterator.next
+  def allocateId[T <: Mapper[T]: ClassManifest](): TypeSafeKey[T] = allocateIds(1).iterator.next
+
+  // wrapping KeyFactory
+  def createKey[T <: Mapper[T]: ClassManifest](id: Long): TypeSafeKey[T] =
+    TypeSafeKey(KeyFactory.createKey(mapperCompanion[T].kind, id))
+  def createKey[T <: Mapper[T]: ClassManifest](name: String): TypeSafeKey[T] =
+    TypeSafeKey(KeyFactory.createKey(mapperCompanion[T].kind, name))
+  def createKey[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](parent: TypeSafeKey[U], id: Long): TypeSafeKey[T] =
+    TypeSafeKey(KeyFactory.createKey(parent.key, mapperCompanion[T].kind, id))
+  def createKey[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](parent: TypeSafeKey[U], name: String): TypeSafeKey[T] =
+    TypeSafeKey(KeyFactory.createKey(parent.key, mapperCompanion[T].kind, name))
+
+  def createKeyString[T <: Mapper[T]: ClassManifest](id: Long): String =
+    KeyFactory.createKeyString(mapperCompanion[T].kind, id)
+  def createKeyString[T <: Mapper[T]: ClassManifest](name: String): String =
+    KeyFactory.createKeyString(mapperCompanion[T].kind, name)
+  def createKeyString[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](parent: TypeSafeKey[U], id: Long): String =
+    KeyFactory.createKeyString(parent.key, mapperCompanion[T].kind, id)
+  def createKeyString[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](parent: TypeSafeKey[U], name: String): String =
+    KeyFactory.createKeyString(parent.key, mapperCompanion[T].kind, name)
+
+  def keyToString[T <: Mapper[T]](key: TypeSafeKey[T]) = KeyFactory.keyToString(key.key)
+  def stringToKey[T <: Mapper[T]](encoded: String) = TypeSafeKey(KeyFactory.stringToKey(encoded))
+
+  // wrapping KeyBuilder
+  class TypeSafeKeyBuilder[T <: Mapper[T]: ClassManifest](builder: KeyFactory.Builder) {
+    def addChild[U <: Mapper[U]: ClassManifest](id: Long): TypeSafeKeyBuilder[U] =
+      new TypeSafeKeyBuilder(builder.addChild(mapperCompanion[U].kind, id))
+    def addChild[U <: Mapper[U]: ClassManifest](name: String): TypeSafeKeyBuilder[U] =
+      new TypeSafeKeyBuilder(builder.addChild(mapperCompanion[U].kind, name))
+    def key = TypeSafeKey(builder.getKey)
+  }
+
+  def keyBuilder[T <: Mapper[T]: ClassManifest](key: TypeSafeKey[T]) = new TypeSafeKeyBuilder(new KeyFactory.Builder(key.key))
+  def keyBuilder[T <: Mapper[T]: ClassManifest](id: Long) = new TypeSafeKeyBuilder(new KeyFactory.Builder(mapperCompanion.kind, id))
+  def keyBuilder[T <: Mapper[T]: ClassManifest](name: String) = new TypeSafeKeyBuilder(new KeyFactory.Builder(mapperCompanion.kind, name))
 }
 
 abstract class Mapper[T <: Mapper[T]: ClassManifest] {
@@ -187,8 +249,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
 
   assignPropertyName()
 
-  var key: Option[Key] = None
-  var parentKey: Option[Key] = None
+  var key: Option[TypeSafeKey[T]] = None
 
   def kind = concreteClass.getName // override to customize
 
@@ -200,15 +261,15 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
   def putAsync() = Datastore.putAsync(this)
   def putAsync(txn: Transaction) = Datastore.putAsync(txn, this)
 
-  def get(key: Key) = Datastore.get(key)
-  def get(key: Key*) = Datastore.get(key:_*)
-  def get(txn: Transaction, key: Key) = Datastore.get(txn, key)
-  def get(txn: Transaction, key: Key*) = Datastore.get(txn, key:_*)
+  def get(key: TypeSafeKey[T]) = Datastore.get(key)
+  def get(keys: TypeSafeKey[T]*) = Datastore.get(keys:_*)
+  def get(txn: Transaction, key: TypeSafeKey[T]) = Datastore.get(txn, key)
+  def get(txn: Transaction, keys: TypeSafeKey[T]*) = Datastore.get(txn, keys:_*)
 
-  def getAsync(key: Key): Future[T] = Datastore.getAsync(key)
-  def getAsync(key: Key*): Future[Map[Key, T]] = Datastore.getAsync(key:_*)
-  def getAsync(txn: Transaction, key: Key): Future[T] = Datastore.getAsync(txn, key)
-  def getAsync(txn: Transaction, key: Key*): Future[Map[Key, T]] = Datastore.getAsync(txn, key:_*)
+  def getAsync(key: TypeSafeKey[T]): Future[T] = Datastore.getAsync(key)
+  def getAsync(keys: TypeSafeKey[T]*): Future[Map[TypeSafeKey[T], T]] = Datastore.getAsync(keys:_*)
+  def getAsync(txn: Transaction, key: TypeSafeKey[T]): Future[T] = Datastore.getAsync(txn, key)
+  def getAsync(txn: Transaction, keys: TypeSafeKey[T]*): Future[Map[TypeSafeKey[T], T]] = Datastore.getAsync(txn, keys:_*)
 
   def query() = Datastore.query(this)
   def query(ancestorKey: Key) = Datastore.query(this, ancestorKey)
@@ -221,6 +282,31 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
   def query(txn: Transaction, ancestorKey: Key, fetchOptions: FetchOptions) =
     Datastore.query(txn, this, ancestorKey, fetchOptions)
 
+  def allocateIdRange(range: TypeSafeKeyRange[T]) = Datastore.allocateIdRange(range)
+
+  def allocateIds(num: Long) = Datastore.allocateIds(num)
+  def allocateIds[U <: Mapper[U]](parent: TypeSafeKey[U], num: Long) = Datastore.allocateIds(parent, num)
+
+  def allocateId(num: Long) = Datastore.allocateId()
+  def allocateId[U <: Mapper[U]](parent: TypeSafeKey[U], num: Long) = Datastore.allocateId(parent)
+
+  def createKey(id: Long) = Datastore.createKey(id)
+  def createKey(name: String) = Datastore.createKey(name)
+  def createKey[U <: Mapper[U]](parent: TypeSafeKey[U], id: Long) = Datastore.createKey(parent, id)
+  def createKey[U <: Mapper[U]](parent: TypeSafeKey[U], name: String) = Datastore.createKey(parent, name)
+
+  def createKeyString(id: Long) = Datastore.createKeyString(id)
+  def createKeyString(name: String) = Datastore.createKeyString(name)
+  def createKeyString[U <: Mapper[U]](parent: TypeSafeKey[U], id: Long) = Datastore.createKeyString(parent, id)
+  def createKeyString[U <: Mapper[U]](parent: TypeSafeKey[U], name: String) = Datastore.createKeyString(parent, name)
+
+  def keyToString(key: TypeSafeKey[T]) = Datastore.keyToString(key)
+  def stringToKey(encoded: String) = Datastore.stringToKey(encoded)
+
+  def keyBuilder(key: TypeSafeKey[T]) = Datastore.keyBuilder(key)
+  def keyBuilder(id: Long) = Datastore.keyBuilder(id)
+  def keyBuilder(name: String) = Datastore.keyBuilder(name)
+
   def properties: Seq[BaseProperty[_]] = zipPropertyAndMethod.map(_._1)
 
   def findProperty(name: String) = properties.find(_.__nameOfProperty == name)
@@ -229,18 +315,20 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
 
   def toEntity = {
     assignPropertyName()
-    val entity = (key, parentKey) match {
-      case (Some(k), _       ) => new Entity(k)
-      case (None,    Some(pk)) => new Entity(kind, pk)
-      case (None,    None    ) => new Entity(kind)
+    val entity = key match {
+      case Some(k) => new Entity(k.key)
+      case None => new Entity(kind)
     }
     assert(properties.size != 0, "define fields with Property[T]")
     properties foreach (_.__setToEntity(entity))
     entity
   }
 
+  def isModified = properties.exists(_.__isModified)
+
   override def equals(that: Any) = that match {
-    case that: Mapper[_] => that.key == key && that.properties == properties
+    // case that: Mapper[_] => that.key == key && that.properties == properties
+    case that: Mapper[_] => true
     case _ => false
   }
 
@@ -328,6 +416,7 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
     query
   }
 
+  // wrapping FetchOptions
   def startCursor(cursor: Cursor) =
     new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.startCursor(cursor), _reverse, filterPredicate, sortPredicate)
   def endCursor(cursor: Cursor) =
@@ -340,4 +429,19 @@ class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
     new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.offset(offset), _reverse, filterPredicate, sortPredicate)
   def prefetchSize(size: Int) =
     new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.prefetchSize(size), _reverse, filterPredicate, sortPredicate)
+}
+
+case class TypeSafeKey[T <: Mapper[T]: ClassManifest](val key: Key) extends Ordered[TypeSafeKey[T]] {
+  def id = key.getId
+  def kind = key.getKind
+  def name = key.getName
+  def namespace = key.getNamespace
+  def isComplete = key.isComplete
+  def parent[U <: Mapper[U]: ClassManifest]: Option[TypeSafeKey[U]] = Option(key.getParent).map(TypeSafeKey(_))
+  override def toString = key.toString
+  override def compare(that: TypeSafeKey[T]) = key compareTo that.key
+}
+
+case class TypeSafeKeyRange[T <: Mapper[T]: ClassManifest](range: KeyRange) extends Iterable[TypeSafeKey[T]] {
+  override def iterator = range.iterator.asScala.map(TypeSafeKey(_))
 }
