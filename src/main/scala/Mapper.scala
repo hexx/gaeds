@@ -48,8 +48,6 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T
     entity
   }
 
-  def isModified = properties.exists(_.__isModified)
-
   override def equals(that: Any) = that match {
     case that: Mapper[_] => that.key == key && that.properties == properties
     case _ => false

@@ -5,7 +5,6 @@ import java.lang.reflect.{ Field, Method }
 import java.util.concurrent.{ Future, TimeUnit }
 import scala.collection.JavaConverters._
 import scala.collection.mutable.Map
-import scala.collection.mutable.ListBuffer
 import com.google.appengine.api.datastore._
 
 object Datastore {
@@ -133,14 +132,10 @@ object Datastore {
         } else {
           Property(v)(manifest)
         }
-      p2.__isModified = false
       f.setAccessible(true)
       f.set(m, p2)
     }
 
-    val fieldAndKeys = new ListBuffer[(Field, BaseProperty[_], Key)]
-    val fieldAndSeqKeys = new ListBuffer[(Field, BaseProperty[_], Seq[Key])]
-    val fieldAndOptionKey = new ListBuffer[(Field, BaseProperty[_], Key)]
     val concreteClass = implicitly[ClassManifest[T]].erasure
     val mapper = concreteClass.newInstance.asInstanceOf[T]
     for {
@@ -148,26 +143,7 @@ object Datastore {
       field = concreteClass.getDeclaredField(name)
       p = Datastore.mapperCompanion.findProperty(name).get
     } {
-      if (p.__isMapper) {
-        fieldAndKeys += ((field, p, value.asInstanceOf[Key]))
-      } else if (p.__isSeq && p.__isContentMapper && value != null) {
-        fieldAndSeqKeys += ((field, p, value.asInstanceOf[java.util.ArrayList[Key]].asScala))
-      } else if (p.__isOption && p.__isContentMapper && value != null) {
-        fieldAndOptionKey += ((field, p, value.asInstanceOf[Key]))
-      } else {
-        createPropertyAndSetToField(mapper, field, p, scalaValueOfProperty(p, value))
-      }
-    }
-    val keys = fieldAndKeys.map(_._3) ++ fieldAndSeqKeys.flatMap(_._3) ++ fieldAndOptionKey.map(_._3)
-    val entities = Datastore.service.get(keys.asJava).asScala
-    for ((f, p, k) <- fieldAndKeys) {
-      createPropertyAndSetToField(mapper, f, p, createMapper(entities(k)))
-    }
-    for ((f, p, ks) <- fieldAndSeqKeys) {
-      createPropertyAndSetToField(mapper, f, p, ks.map(k => createMapper(entities(k))))
-    }
-    for ((f, p, k) <- fieldAndOptionKey) {
-      createPropertyAndSetToField(mapper, f, p, Option(createMapper(entities(k))))
+      createPropertyAndSetToField(mapper, field, p, scalaValueOfProperty(p, value))
     }
     mapper.key = Option(TypeSafeKey(entity.getKey))
     mapper

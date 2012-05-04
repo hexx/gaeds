@@ -11,13 +11,10 @@ import com.google.appengine.api.users.User
 
 class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifest[T]) {
   var __nameOfProperty: String = _
-  var __isModified = true
   def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
   def __isSerializable = classOf[Serializable].isAssignableFrom(__valueClass)
   def __isContentSerializable = classOf[Serializable].isAssignableFrom(__contentClass)
-  def __isMapper = classOf[Mapper[_]].isAssignableFrom(__valueClass)
-  def __isContentMapper = classOf[Mapper[_]].isAssignableFrom(__contentClass)
   def __isUnindexed = false
   def __setToEntity(entity: Entity) = entity.setProperty(__nameOfProperty, __javaValueOfProperty)
   def __contentManifest = __manifest.typeArguments(0)
@@ -39,7 +36,6 @@ class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifes
       case None => null
     }
     case s: Serializable => dumpToBlob(s)
-    case m: Mapper[_] => m.key.get.key
     case _ => __valueOfProperty
   }
 
