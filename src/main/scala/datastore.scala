@@ -7,8 +7,6 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import com.google.appengine.api.datastore._
-import com.google.appengine.api.datastore.Query.FilterOperator
-import com.google.appengine.api.datastore.Query.SortDirection
 
 object Datastore {
   val service = DatastoreServiceFactory.getDatastoreService
@@ -82,19 +80,19 @@ object Datastore {
 
   def query[T <: Mapper[T]: ClassManifest](mapper: T) =
     new TypeSafeQuery(None, mapper, None)
-  def query[T <: Mapper[T]: ClassManifest](mapper: T, ancestorKey: Key) =
+  def query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](mapper: T, ancestorKey: TypeSafeKey[U]) =
     new TypeSafeQuery(None, mapper, Option(ancestorKey))
   def query[T <: Mapper[T]: ClassManifest](mapper: T, fetchOptions: FetchOptions) =
     new TypeSafeQuery(None, mapper, None, fetchOptions)
-  def query[T <: Mapper[T]: ClassManifest](mapper: T, ancestorKey: Key, fetchOptions: FetchOptions) =
+  def query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](mapper: T, ancestorKey: TypeSafeKey[U], fetchOptions: FetchOptions) =
     new TypeSafeQuery(None, mapper, Some(ancestorKey), fetchOptions)
   def query[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T) =
     new TypeSafeQuery(Option(txn), mapper, None)
-  def query[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, ancestorKey: Key) =
+  def query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](txn: Transaction, mapper: T, ancestorKey: TypeSafeKey[U]) =
     new TypeSafeQuery(Option(txn), mapper, Option(ancestorKey))
   def query[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, fetchOptions: FetchOptions) =
     new TypeSafeQuery(Option(txn), mapper, None, fetchOptions)
-  def query[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T, ancestorKey: Key, fetchOptions: FetchOptions) =
+  def query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](txn: Transaction, mapper: T, ancestorKey: TypeSafeKey[U], fetchOptions: FetchOptions) =
     new TypeSafeQuery(Some(txn), mapper, Some(ancestorKey), fetchOptions)
 
   def companion[T](implicit classManifest: ClassManifest[T]): Object = Class.forName(classManifest.erasure.getName + "$").getField("MODULE$").get()
@@ -244,22 +242,8 @@ object Datastore {
   def keyBuilder[T <: Mapper[T]: ClassManifest](name: String) = new TypeSafeKeyBuilder(new KeyFactory.Builder(mapperCompanion.kind, name))
 }
 
-abstract class Mapper[T <: Mapper[T]: ClassManifest] {
-  self: T =>
-
-  assignPropertyName()
-
-  var key: Option[TypeSafeKey[T]] = None
-
-  def kind = concreteClass.getName // override to customize
-
-  def concreteClass = implicitly[ClassManifest[T]].erasure
-
-  def put() = Datastore.put(this)
-  def put(txn: Transaction) = Datastore.put(txn, this)
-
-  def putAsync() = Datastore.putAsync(this)
-  def putAsync(txn: Transaction) = Datastore.putAsync(txn, this)
+trait DatastoreDelegate[T <: Mapper[T]] {
+  implicit val mapperClassManifest: ClassManifest[T]
 
   def get(key: TypeSafeKey[T]) = Datastore.get(key)
   def get(keys: TypeSafeKey[T]*) = Datastore.get(keys:_*)
@@ -271,16 +255,21 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
   def getAsync(txn: Transaction, key: TypeSafeKey[T]): Future[T] = Datastore.getAsync(txn, key)
   def getAsync(txn: Transaction, keys: TypeSafeKey[T]*): Future[Map[TypeSafeKey[T], T]] = Datastore.getAsync(txn, keys:_*)
 
-  def query() = Datastore.query(this)
-  def query(ancestorKey: Key) = Datastore.query(this, ancestorKey)
-  def query(fetchOptions: FetchOptions) = Datastore.query(this, fetchOptions)
-  def query(ancestorKey: Key, fetchOptions: FetchOptions) =
-    Datastore.query(this, ancestorKey, fetchOptions)
-  def query(txn: Transaction) = Datastore.query(txn, this)
-  def query(txn: Transaction, ancestorKey: Key) = Datastore.query(txn, this, ancestorKey)
-  def query(txn: Transaction, fetchOptions: FetchOptions) = Datastore.query(txn, this, fetchOptions)
-  def query(txn: Transaction, ancestorKey: Key, fetchOptions: FetchOptions) =
-    Datastore.query(txn, this, ancestorKey, fetchOptions)
+  def put(mapper: T) = Datastore.put(mapper)
+  def put(mappers: T*) = Datastore.put(mappers:_*)
+  def put(txn: Transaction, mapper: T) = Datastore.put(txn, mapper)
+  def put(txn: Transaction, mappers: T*) = Datastore.put(txn, mappers:_*)
+
+  def putAsync(mapper: T) = Datastore.putAsync(mapper)
+  def putAsync(mappers: T*) = Datastore.putAsync(mappers:_*)
+  def putAsync(txn: Transaction, mapper: T) = Datastore.putAsync(txn, mapper)
+  def putAsync(txn: Transaction, mappers: T*) = Datastore.putAsync(txn, mappers:_*)
+
+  def delete(keys: TypeSafeKey[T]*) = Datastore.delete(keys:_*)
+  def delete(txn: Transaction, keys: TypeSafeKey[T]*) = Datastore.delete(txn, keys:_*)
+
+  def deleteAsync(keys: TypeSafeKey[T]*) = Datastore.delete(keys:_*)
+  def deleteAsync(txn: Transaction, keys: TypeSafeKey[T]*) = Datastore.delete(txn, keys:_*)
 
   def allocateIdRange(range: TypeSafeKeyRange[T]) = Datastore.allocateIdRange(range)
 
@@ -306,142 +295,4 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] {
   def keyBuilder(key: TypeSafeKey[T]) = Datastore.keyBuilder(key)
   def keyBuilder(id: Long) = Datastore.keyBuilder(id)
   def keyBuilder(name: String) = Datastore.keyBuilder(name)
-
-  def properties: Seq[BaseProperty[_]] = zipPropertyAndMethod.map(_._1)
-
-  def findProperty(name: String) = properties.find(_.__nameOfProperty == name)
-
-  def fromEntity(entity: Entity): T = Datastore.createMapper(entity)
-
-  def toEntity = {
-    assignPropertyName()
-    val entity = key match {
-      case Some(k) => new Entity(k.key)
-      case None => new Entity(kind)
-    }
-    assert(properties.size != 0, "define fields with Property[T]")
-    properties foreach (_.__setToEntity(entity))
-    entity
-  }
-
-  def isModified = properties.exists(_.__isModified)
-
-  override def equals(that: Any) = that match {
-    // case that: Mapper[_] => that.key == key && that.properties == properties
-    case that: Mapper[_] => true
-    case _ => false
-  }
-
-  private def zipPropertyAndMethod: Seq[(BaseProperty[_], Method)] = {
-    def isGetter(m: Method) = !m.isSynthetic && classOf[BaseProperty[_]].isAssignableFrom(m.getReturnType)
-    for {
-      m <- this.getClass.getMethods
-      if isGetter(m)
-      p = m.invoke(this).asInstanceOf[BaseProperty[_]]
-    } yield (p, m)
-  }
-
-  def assignPropertyName() {
-    for ((p, m) <- zipPropertyAndMethod) {
-      p.__nameOfProperty = m.getName
-    }
-  }
-}
-
-class TypeSafeQuery[T <: Mapper[T]: ClassManifest](
-    txn: Option[Transaction],
-    mapper: T,
-    ancestorKey: Option[Key],
-    fetchOptions: FetchOptions = FetchOptions.Builder.withDefaults,
-    _reverse: Boolean = false,
-    filterPredicate: List[FilterPredicate[_]] = List(),
-    sortPredicate: List[SortPredicate] = List()) {
-  def addFilter(f: T => FilterPredicate[_]) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate :+ f(mapper), sortPredicate)
-  def filter(f: T => FilterPredicate[_]) = addFilter(f)
-
-  def addSort(f: T => SortPredicate) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate, sortPredicate :+ f(mapper))
-  def sort(f: T => SortPredicate) = addSort(f)
-
-  def asEntityIterator(keysOnly: Boolean) = prepare(keysOnly).asIterator(fetchOptions).asScala
-  def asQueryResultIterator(keysOnly: Boolean) = prepare(keysOnly).asQueryResultIterator(fetchOptions)
-
-  def asIterator(): Iterator[T] = asEntityIterator(false).map(mapper.fromEntity(_))
-  def asKeyIterator(): Iterator[Key] = asEntityIterator(true).map(_.getKey)
-
-  def asIteratorWithCursorAndIndex(): Iterator[(T, () => Cursor, () => Seq[Index])] = {
-    val iterator = asQueryResultIterator(false)
-    iterator.asScala.map(entity => (mapper.fromEntity(entity), iterator.getCursor _, () => iterator.getIndexList.asScala.toSeq))
-  }
-  def asKeyIteratorWithCursorAndIndex(): Iterator[(Key, () => Cursor, () => Seq[Index])] = {
-    val iterator = asQueryResultIterator(true)
-    iterator.asScala.map(entity => (entity.getKey, iterator.getCursor _, () => iterator.getIndexList.asScala.toSeq))
-  }
-
-  def asSingleEntity(keysOnly: Boolean) = prepare(keysOnly).asSingleEntity
-  def asSingle(): T = mapper.fromEntity(asSingleEntity(false))
-  def asSingleKey(): Key = asSingleEntity(true).getKey
-
-  def count() = prepare(false).countEntities(fetchOptions)
-
-  def prepare(keysOnly: Boolean) = txn match {
-    case Some(t) => Datastore.service.prepare(t, toQuery(keysOnly))
-    case None => Datastore.service.prepare(toQuery(keysOnly))
-  }
-
-  def reverse() = new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions, !_reverse, filterPredicate, sortPredicate)
-
-  def toQuery(keysOnly: Boolean) = {
-    val query = ancestorKey match {
-      case Some(k) => new Query(mapper.kind, k)
-      case None => new Query(mapper.kind)
-    }
-    for (p <- filterPredicate) {
-      if (p.operator == FilterOperator.IN) {
-        query.addFilter(p.property.__nameOfProperty, p.operator, p.value.asJava)
-      } else {
-        query.addFilter(p.property.__nameOfProperty, p.operator, p.value(0))
-      }
-    }
-    for (p <- sortPredicate) {
-      query.addSort(p.property.__nameOfProperty, p.direction)
-    }
-    if (_reverse) {
-      query.reverse()
-    }
-    if (keysOnly) {
-      query.setKeysOnly()
-    }
-    query
-  }
-
-  // wrapping FetchOptions
-  def startCursor(cursor: Cursor) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.startCursor(cursor), _reverse, filterPredicate, sortPredicate)
-  def endCursor(cursor: Cursor) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.endCursor(cursor), _reverse, filterPredicate, sortPredicate)
-  def chunkSize(size: Int) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.chunkSize(size), _reverse, filterPredicate, sortPredicate)
-  def limit(limit: Int) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.limit(limit), _reverse, filterPredicate, sortPredicate)
-  def offset(offset: Int) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.offset(offset), _reverse, filterPredicate, sortPredicate)
-  def prefetchSize(size: Int) =
-    new TypeSafeQuery(txn, mapper, ancestorKey, fetchOptions.prefetchSize(size), _reverse, filterPredicate, sortPredicate)
-}
-
-case class TypeSafeKey[T <: Mapper[T]: ClassManifest](val key: Key) extends Ordered[TypeSafeKey[T]] {
-  def id = key.getId
-  def kind = key.getKind
-  def name = key.getName
-  def namespace = key.getNamespace
-  def isComplete = key.isComplete
-  def parent[U <: Mapper[U]: ClassManifest]: Option[TypeSafeKey[U]] = Option(key.getParent).map(TypeSafeKey(_))
-  override def toString = key.toString
-  override def compare(that: TypeSafeKey[T]) = key compareTo that.key
-}
-
-case class TypeSafeKeyRange[T <: Mapper[T]: ClassManifest](range: KeyRange) extends Iterable[TypeSafeKey[T]] {
-  override def iterator = range.iterator.asScala.map(TypeSafeKey(_))
 }
