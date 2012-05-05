@@ -298,6 +298,12 @@ class OptionData(
 
 object OptionData extends OptionData
 
+class KeyTestData(val dataKey: Property[Key[Data]]) extends Mapper[KeyTestData] {
+  def this() = this(Data.createKey(1L))
+}
+
+object KeyTestData extends KeyTestData
+
 object SampleData {
   def data =
     new Data(

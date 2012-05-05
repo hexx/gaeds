@@ -114,7 +114,10 @@ object Datastore {
           l.asScala
         }
       case null if p.__isSeq => Seq()
-      case k: GAEKey if k != null => Key(k)
+      case k: GAEKey if k != null => {
+        val classManifest = p.__manifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
+        Key(k)(classManifest)
+      }
       case b: Blob if p.__isSerializable && !p.__isOption => loadSerializable(b)
       case _ if p.__isOption => 
         val o = Option(value)

@@ -159,6 +159,15 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       putAndGetTest(k3, d1, d4)
       Datastore.delete(k1)
     }
+    "load key property" in {
+      val d1 = data
+      val k1 = d1.put
+      val d2 = new KeyTestData(k1)
+      val k2 = d2.put
+      val d3 = k2.get
+      val d4 = d3.dataKey.get
+      putAndGetTest(k1, d1, d4)
+    }
     "transaction sample" in {
       val d1 = data
       val k = d1.put

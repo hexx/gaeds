@@ -3,14 +3,14 @@ package com.github.hexx.gaeds
 import scala.collection.JavaConverters._
 import com.google.appengine.api.datastore.{ Key => GAEKey, KeyRange => GAEKeyRange }
 
-case class Key[T <: Mapper[T]: ClassManifest](val key: GAEKey) extends Ordered[Key[T]] {
+case class Key[T <: Mapper[T]](val key: GAEKey)(implicit val classManifest: ClassManifest[T]) extends Ordered[Key[T]] {
   assert(key != null)
   def id = key.getId
   def kind = key.getKind
   def name = key.getName
   def namespace = key.getNamespace
   def isComplete = key.isComplete
-  def parent[U <: Mapper[U]: ClassManifest]: Option[Key[U]] = Option(key.getParent).map(Key(_))
+  def parent[U <: Mapper[U]: ClassManifest]: Option[Key[U]] = Option(key.getParent).map(Key[U](_))
 
   def get = Datastore.get(this)
   def getAync = Datastore.getAsync(this)
