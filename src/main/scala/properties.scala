@@ -4,9 +4,9 @@ import java.io.{ ByteArrayOutputStream, ObjectOutputStream }
 import java.util.Date
 import scala.collection.JavaConverters._
 import com.google.appengine.api.blobstore.BlobKey
-import com.google.appengine.api.datastore._
-import com.google.appengine.api.datastore.Query.FilterOperator
-import com.google.appengine.api.datastore.Query.SortDirection
+import com.google.appengine.api.datastore.{ Blob, Category, Email, Entity, GeoPt, IMHandle }
+import com.google.appengine.api.datastore.{ Link, PhoneNumber, PostalAddress, Rating, ShortBlob, Text }
+import com.google.appengine.api.datastore.Query.{ FilterOperator, SortDirection }
 import com.google.appengine.api.users.User
 
 class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifest[T]) {
@@ -35,6 +35,7 @@ class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifes
         }
       case None => null
     }
+    case k: Key[_] => k.key
     case s: Serializable => dumpToBlob(s)
     case _ => __valueOfProperty
   }
@@ -89,7 +90,7 @@ object Property {
   implicit def userValueToProperty(value: User) = Property(value)
   implicit def longValueToProperty(value: Long) = Property(value)
   implicit def blobKeyValueToProperty(value: BlobKey) = Property(value)
-  implicit def keyValueToProperty(value: Key) = Property(value)
+  implicit def keyValueToProperty[T <: Mapper[T]: Manifest](value: Key[T]) = Property(value)
   implicit def linkValueToProperty(value: Link) = Property(value)
   implicit def imHandleValueToProperty(value: IMHandle) = Property(value)
   implicit def postalAddressValueToProperty(value: PostalAddress) = Property(value)
@@ -110,7 +111,7 @@ object Property {
   implicit def userSeqValueToProperty(value: Seq[User]) = Property(value)
   implicit def longSeqValueToProperty(value: Seq[Long]) = Property(value)
   implicit def blobKeySeqValueToProperty(value: Seq[BlobKey]) = Property(value)
-  implicit def keySeqValueToProperty(value: Seq[Key]) = Property(value)
+  implicit def keySeqValueToProperty[T <: Mapper[T]: Manifest](value: Seq[Key[T]]) = Property(value)
   implicit def linkSeqValueToProperty(value: Seq[Link]) = Property(value)
   implicit def imHandleSeqValueToProperty(value: Seq[IMHandle]) = Property(value)
   implicit def postalAddressSeqValueToProperty(value: Seq[PostalAddress]) = Property(value)
@@ -131,7 +132,7 @@ object Property {
   implicit def userOptionValueToProperty(value: Option[User]) = Property(value)
   implicit def longOptionValueToProperty(value: Option[Long]) = Property(value)
   implicit def blobKeyOptionValueToProperty(value: Option[BlobKey]) = Property(value)
-  implicit def keyOptionValueToProperty(value: Option[Key]) = Property(value)
+  implicit def keyOptionValueToProperty[T <: Mapper[T]: Manifest](value: Option[Key[T]]) = Property(value)
   implicit def linkOptionValueToProperty(value: Option[Link]) = Property(value)
   implicit def imHandleOptionValueToProperty(value: Option[IMHandle]) = Property(value)
   implicit def postalAddressOptionValueToProperty(value: Option[PostalAddress]) = Property(value)
@@ -152,7 +153,7 @@ object Property {
   implicit def userValueToUnindexedProperty(value: User) = UnindexedProperty(value)
   implicit def longValueToUnindexedProperty(value: Long) = UnindexedProperty(value)
   implicit def blobKeyValueToUnindexedProperty(value: BlobKey) = UnindexedProperty(value)
-  implicit def keyValueToUnindexedProperty(value: Key) = UnindexedProperty(value)
+  implicit def keyValueToUnindexedProperty[T <: Mapper[T]: Manifest](value: Key[T]) = UnindexedProperty(value)
   implicit def linkValueToUnindexedProperty(value: Link) = UnindexedProperty(value)
   implicit def imHandleValueToUnindexedProperty(value: IMHandle) = UnindexedProperty(value)
   implicit def postalAddressValueToUnindexedProperty(value: PostalAddress) = UnindexedProperty(value)
@@ -173,7 +174,7 @@ object Property {
   implicit def userSeqValueToUnindexedProperty(value: Seq[User]) = UnindexedProperty(value)
   implicit def longSeqValueToUnindexedProperty(value: Seq[Long]) = UnindexedProperty(value)
   implicit def blobKeySeqValueToUnindexedProperty(value: Seq[BlobKey]) = UnindexedProperty(value)
-  implicit def keySeqValueToUnindexedProperty(value: Seq[Key]) = UnindexedProperty(value)
+  implicit def keySeqValueToUnindexedProperty[T <: Mapper[T]: Manifest](value: Seq[Key[T]]) = UnindexedProperty(value)
   implicit def linkSeqValueToUnindexedProperty(value: Seq[Link]) = UnindexedProperty(value)
   implicit def imHandleSeqValueToUnindexedProperty(value: Seq[IMHandle]) = UnindexedProperty(value)
   implicit def postalAddressSeqValueToUnindexedProperty(value: Seq[PostalAddress]) = UnindexedProperty(value)
@@ -194,7 +195,7 @@ object Property {
   implicit def userOptionValueToUnindexedProperty(value: Option[User]) = UnindexedProperty(value)
   implicit def longOptionValueToUnindexedProperty(value: Option[Long]) = UnindexedProperty(value)
   implicit def blobKeyOptionValueToUnindexedProperty(value: Option[BlobKey]) = UnindexedProperty(value)
-  implicit def keyOptionValueToUnindexedProperty(value: Option[Key]) = UnindexedProperty(value)
+  implicit def keyOptionValueToUnindexedProperty[T <: Mapper[T]: Manifest](value: Option[Key[T]]) = UnindexedProperty(value)
   implicit def linkOptionValueToUnindexedProperty(value: Option[Link]) = UnindexedProperty(value)
   implicit def imHandleOptionValueToUnindexedProperty(value: Option[IMHandle]) = UnindexedProperty(value)
   implicit def postalAddressOptionValueToUnindexedProperty(value: Option[PostalAddress]) = UnindexedProperty(value)

@@ -6,7 +6,7 @@ import java.util.Date
 import scala.collection.JavaConverters._
 
 import com.google.appengine.api.blobstore.BlobKey
-import com.google.appengine.api.datastore._
+import com.google.appengine.api.datastore.{ Key => GAEKey, _ }
 import com.google.appengine.api.users.User
 import com.google.appengine.tools.development.testing.{ LocalDatastoreServiceTestConfig, LocalServiceTestHelper }
 
@@ -17,7 +17,7 @@ import SampleData._
 
 // low-level sample
 import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity }
-import com.google.appengine.api.datastore.Query
+import com.google.appengine.api.datastore.{ Query => GAEQuery }
 import com.google.appengine.api.datastore.Query.FilterOperator._
 import com.google.appengine.api.datastore.Query.SortDirection._
 
@@ -40,23 +40,23 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     helper.tearDown()
   }
 
-  def putTest[T <: Mapper[T]](k: TypeSafeKey[T], d: T) = {
+  def putTest[T <: Mapper[T]](k: Key[T], d: T) = {
     k.id must not be 0
     d.key.get must be === k
   }
-  def putAndGetTest[T <: Mapper[T]](k: TypeSafeKey[T], d1: T, d2: T) = {
+  def putAndGetTest[T <: Mapper[T]](k: Key[T], d1: T, d2: T) = {
     putTest(k, d1)
     d1 must be === d2
     d1.key.get must be === d2.key.get
     d1.toString must be === d2.toString
   }
 
-  def printKey(k: Key) {
+  def printKey(k: Key[_]) {
     println(k)
-    println(k.getId)
-    println(k.getKind)
-    println(k.getName)
-    println(k.getNamespace)
+    println(k.id)
+    println(k.kind)
+    println(k.name)
+    println(k.namespace)
     println(k.isComplete)
   }
 
@@ -207,7 +207,7 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     }
     "low-level api sample" in {
       val ds = DatastoreServiceFactory.getDatastoreService
-      val q = new Query("Person")
+      val q = new GAEQuery("Person")
       q.addFilter("age", GREATER_THAN_OR_EQUAL, 10)
       q.addFilter("age", LESS_THAN_OR_EQUAL, 20)
       q.addSort("age", ASCENDING)

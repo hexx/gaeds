@@ -1,14 +1,14 @@
 package com.github.hexx.gaeds
 
 import java.lang.reflect.{ Field, Method }
-import com.google.appengine.api.datastore._
+import com.google.appengine.api.datastore.{ Entity, FetchOptions, Transaction }
 
 abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T] {
   self: T =>
 
   assignPropertyName()
 
-  var key: Option[TypeSafeKey[T]] = None
+  var key: Option[Key[T]] = None
 
   def kind = concreteClass.getName // override to customize
 
@@ -21,14 +21,14 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T
   def putAsync(txn: Transaction) = Datastore.putAsync(txn, this)
 
   def query() = Datastore.query(this)
-  def query[U <: Mapper[U]](ancestorKey: TypeSafeKey[U]) = Datastore.query(this, ancestorKey)
+  def query[U <: Mapper[U]](ancestorKey: Key[U]) = Datastore.query(this, ancestorKey)
   def query(fetchOptions: FetchOptions) = Datastore.query(this, fetchOptions)
-  def query[U <: Mapper[U]](ancestorKey: TypeSafeKey[U], fetchOptions: FetchOptions) =
+  def query[U <: Mapper[U]](ancestorKey: Key[U], fetchOptions: FetchOptions) =
     Datastore.query(this, ancestorKey, fetchOptions)
   def query(txn: Transaction) = Datastore.query(txn, this)
-  def query[U <: Mapper[U]](txn: Transaction, ancestorKey: TypeSafeKey[U]) = Datastore.query(txn, this, ancestorKey)
+  def query[U <: Mapper[U]](txn: Transaction, ancestorKey: Key[U]) = Datastore.query(txn, this, ancestorKey)
   def query(txn: Transaction, fetchOptions: FetchOptions) = Datastore.query(txn, this, fetchOptions)
-  def query[U <: Mapper[U]](txn: Transaction, ancestorKey: TypeSafeKey[U], fetchOptions: FetchOptions) =
+  def query[U <: Mapper[U]](txn: Transaction, ancestorKey: Key[U], fetchOptions: FetchOptions) =
     Datastore.query(txn, this, ancestorKey, fetchOptions)
 
   def properties: Seq[BaseProperty[_]] = zipPropertyAndMethod.map(_._1)
