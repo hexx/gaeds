@@ -11,6 +11,14 @@ case class Key[T <: Mapper[T]: ClassManifest](val key: GAEKey) extends Ordered[K
   def namespace = key.getNamespace
   def isComplete = key.isComplete
   def parent[U <: Mapper[U]: ClassManifest]: Option[Key[U]] = Option(key.getParent).map(Key(_))
+
+  def get = Datastore.get(this)
+  def getAync = Datastore.getAsync(this)
+  def delete = Datastore.delete(this)
+  def deleteAsync = Datastore.deleteAsync(this)
+  def encode = Datastore.keyToString(this)
+  def builder = Datastore.keyBuilder(this)
+
   override def toString = key.toString
   override def compare(that: Key[T]) = key compareTo that.key
 }
