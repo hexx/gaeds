@@ -2,7 +2,7 @@ package com.github.hexx.gaeds
 
 import scala.collection.JavaConverters._
 import com.google.appengine.api.datastore.{ Cursor, FetchOptions, Index, Transaction }
-import com.google.appengine.api.datastore.{ Query => GAEQuery }
+import com.google.appengine.api.datastore.{ Query => LLQuery }
 import com.google.appengine.api.datastore.Query.{ FilterOperator, SortDirection }
 
 class Query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](
@@ -51,8 +51,8 @@ class Query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](
 
   def toQuery(keysOnly: Boolean) = {
     val query = ancestorKey match {
-      case Some(k) => new GAEQuery(mapper.kind, k.key)
-      case None => new GAEQuery(mapper.kind)
+      case Some(k) => new LLQuery(mapper.kind, k.key)
+      case None => new LLQuery(mapper.kind)
     }
     for (p <- filterPredicate) {
       if (p.operator == FilterOperator.IN) {

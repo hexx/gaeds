@@ -6,7 +6,7 @@ import java.util.concurrent.{ Future, TimeUnit }
 import scala.collection.JavaConverters._
 import scala.collection.mutable.Map
 import com.google.appengine.api.datastore.{ Blob, DatastoreServiceFactory, KeyFactory, Entity, FetchOptions, Transaction }
-import com.google.appengine.api.datastore.{ Key => GAEKey }
+import com.google.appengine.api.datastore.{ Key => LLKey }
 
 object Datastore {
   val service = DatastoreServiceFactory.getDatastoreService
@@ -22,7 +22,7 @@ object Datastore {
 
   private def wrapGet[T <: Mapper[T]: ClassManifest](entity: Entity): T =
     createMapper(entity)
-  private def wrapGet[T <: Mapper[T]: ClassManifest](entities: java.util.Map[GAEKey, Entity]): Map[Key[T], T] =
+  private def wrapGet[T <: Mapper[T]: ClassManifest](entities: java.util.Map[LLKey, Entity]): Map[Key[T], T] =
     entities.asScala.map(v => (Key(v._1), createMapper(v._2)))
 
   def get[T <: Mapper[T]: ClassManifest](key: Key[T]): T =
@@ -37,17 +37,17 @@ object Datastore {
   def getAsync[T <: Mapper[T]: ClassManifest](key: Key[T]): Future[T] =
     FutureWrapper(asyncService.get(key.key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
   def getAsync[T <: Mapper[T]: ClassManifest](keys: Key[T]*): Future[Map[Key[T], T]] =
-    FutureWrapper(asyncService.get(keys.map(_.key).asJava), wrapGet(_: java.util.Map[GAEKey, Entity])(implicitly[ClassManifest[T]]))
+    FutureWrapper(asyncService.get(keys.map(_.key).asJava), wrapGet(_: java.util.Map[LLKey, Entity])(implicitly[ClassManifest[T]]))
   def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, key: Key[T]): Future[T] =
     FutureWrapper(asyncService.get(txn, key.key), wrapGet(_: Entity)(implicitly[ClassManifest[T]]))
   def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: Key[T]*): Future[Map[Key[T], T]] =
-    FutureWrapper(asyncService.get(txn, keys.map(_.key).asJava), wrapGet(_: java.util.Map[GAEKey, Entity])(implicitly[ClassManifest[T]]))
+    FutureWrapper(asyncService.get(txn, keys.map(_.key).asJava), wrapGet(_: java.util.Map[LLKey, Entity])(implicitly[ClassManifest[T]]))
 
-  private def wrapPut[T <: Mapper[T]: ClassManifest](mapper: T)(key: GAEKey) = {
+  private def wrapPut[T <: Mapper[T]: ClassManifest](mapper: T)(key: LLKey) = {
     mapper.key = Option(Key(key))
     Key(key)
   }
-  private def wrapPut[T <: Mapper[T]: ClassManifest](mappers: T*)(keys: java.util.List[GAEKey]) = {
+  private def wrapPut[T <: Mapper[T]: ClassManifest](mappers: T*)(keys: java.util.List[LLKey]) = {
     for ((mapper, key) <- mappers zip keys.asScala) {
       mapper.key = Option(Key(key))
     }
@@ -111,14 +111,14 @@ object Datastore {
         val l2 = l.asScala
         if (p.__isContentKey) {
           val classManifest = p.__contentManifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
-          l2.asInstanceOf[Seq[GAEKey]].map(Key(_)(classManifest))
+          l2.asInstanceOf[Seq[LLKey]].map(Key(_)(classManifest))
         } else if (p.__isContentSerializable) {
           l2.asInstanceOf[Seq[Blob]].map(loadSerializable)
         } else {
           l2
         }
       case null if p.__isSeq => Seq()
-      case k: GAEKey if k != null && !p.__isOption =>
+      case k: LLKey if k != null && !p.__isOption =>
         val classManifest = p.__manifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
         Key(k)(classManifest)
       case b: Blob if p.__isSerializable && !p.__isOption => loadSerializable(b)
@@ -126,7 +126,7 @@ object Datastore {
         val o = Option(value)
         if (p.__isContentKey) {
           val classManifest = p.__contentManifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
-          o.asInstanceOf[Option[GAEKey]].map(Key(_)(classManifest))
+          o.asInstanceOf[Option[LLKey]].map(Key(_)(classManifest))
         } else if (p.__isContentSerializable) {
           o.asInstanceOf[Option[Blob]].map(loadSerializable)
         } else {

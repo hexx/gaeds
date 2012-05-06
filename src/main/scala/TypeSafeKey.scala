@@ -1,9 +1,9 @@
 package com.github.hexx.gaeds
 
 import scala.collection.JavaConverters._
-import com.google.appengine.api.datastore.{ Key => GAEKey, KeyRange => GAEKeyRange }
+import com.google.appengine.api.datastore.{ Key => LLKey, KeyRange => LLKeyRange }
 
-case class Key[T <: Mapper[T]](val key: GAEKey)(implicit val classManifest: ClassManifest[T]) extends Ordered[Key[T]] {
+case class Key[T <: Mapper[T]](val key: LLKey)(implicit val classManifest: ClassManifest[T]) extends Ordered[Key[T]] {
   assert(key != null)
   def id = key.getId
   def kind = key.getKind
@@ -23,6 +23,6 @@ case class Key[T <: Mapper[T]](val key: GAEKey)(implicit val classManifest: Clas
   override def compare(that: Key[T]) = key compareTo that.key
 }
 
-case class KeyRange[T <: Mapper[T]: ClassManifest](range: GAEKeyRange) extends Iterable[Key[T]] {
+case class KeyRange[T <: Mapper[T]: ClassManifest](range: LLKeyRange) extends Iterable[Key[T]] {
   override def iterator = range.iterator.asScala.map(Key(_))
 }
