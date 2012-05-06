@@ -15,20 +15,26 @@ class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifes
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
   def __isSerializable = classOf[Serializable].isAssignableFrom(__valueClass)
   def __isContentSerializable = classOf[Serializable].isAssignableFrom(__contentClass)
+  def __isContentKey = classOf[Key[_]].isAssignableFrom(__contentClass)
   def __isUnindexed = false
   def __setToEntity(entity: Entity) = entity.setProperty(__nameOfProperty, __javaValueOfProperty)
   def __contentManifest = __manifest.typeArguments(0)
 
   def __javaValueOfProperty = __valueOfProperty match {
     case l: Seq[_] =>
-      if (__isContentSerializable) {
-        l.asInstanceOf[Seq[Serializable]].map(dumpToBlob).asJava
+      val l2 = if (__isContentKey) {
+        l.asInstanceOf[Seq[Key[_]]].map(_.key)
+      } else if (__isContentSerializable) {
+        l.asInstanceOf[Seq[Serializable]].map(dumpToBlob)
       } else {
-        l.asJava
+        l
       }
+      l2.asJava
     case o: Option[_] => o match {
-      case Some(v) =>
-        if (__isContentSerializable) {
+      case Some(v) => 
+        if (__isContentKey) {
+          v.asInstanceOf[Key[_]].key
+        } else if (__isContentSerializable) {
           dumpToBlob(v.asInstanceOf[Serializable]) 
         } else {
           v

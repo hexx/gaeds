@@ -108,20 +108,26 @@ object Datastore {
 
     def scalaValueOfProperty(p: BaseProperty[_], value: Any) = value match {
       case l: java.util.ArrayList[_] =>
-        if (p.__isContentSerializable) {
-          l.asInstanceOf[java.util.ArrayList[Blob]].asScala.map(loadSerializable)
+        val l2 = l.asScala
+        if (p.__isContentKey) {
+          val classManifest = p.__contentManifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
+          l2.asInstanceOf[Seq[GAEKey]].map(Key(_)(classManifest))
+        } else if (p.__isContentSerializable) {
+          l2.asInstanceOf[Seq[Blob]].map(loadSerializable)
         } else {
-          l.asScala
+          l2
         }
       case null if p.__isSeq => Seq()
-      case k: GAEKey if k != null => {
+      case k: GAEKey if k != null && !p.__isOption =>
         val classManifest = p.__manifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
         Key(k)(classManifest)
-      }
       case b: Blob if p.__isSerializable && !p.__isOption => loadSerializable(b)
       case _ if p.__isOption => 
         val o = Option(value)
-        if (p.__isContentSerializable) {
+        if (p.__isContentKey) {
+          val classManifest = p.__contentManifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
+          o.asInstanceOf[Option[GAEKey]].map(Key(_)(classManifest))
+        } else if (p.__isContentSerializable) {
           o.asInstanceOf[Option[Blob]].map(loadSerializable)
         } else {
           o
