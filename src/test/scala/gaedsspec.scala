@@ -26,7 +26,7 @@ import com.github.hexx.gaeds._
 import com.github.hexx.gaeds.Property._
 
 class Person2(val name: Property[String], val age: Property[Long]) extends Mapper[Person2] {
-  def this() = this("", 0)
+  def this() = this(mock, mock)
   override def toString() = "Person(" + name + "," + age + ")"
 }
 object Person2 extends Person2

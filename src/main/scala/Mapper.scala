@@ -58,7 +58,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T
   private def zipPropertyAndMethod: Seq[(BaseProperty[_], Method)] = {
     def isGetter(m: Method) = !m.isSynthetic && classOf[BaseProperty[_]].isAssignableFrom(m.getReturnType)
     for {
-      m <- this.getClass.getMethods
+      m <- concreteClass.getDeclaredMethods
       if isGetter(m)
       p = m.invoke(this).asInstanceOf[BaseProperty[_]]
     } yield (p, m)

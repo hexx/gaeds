@@ -35,18 +35,19 @@ class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifes
         if (__isContentKey) {
           v.asInstanceOf[Key[_]].key
         } else if (__isContentSerializable) {
-          dumpToBlob(v.asInstanceOf[Serializable]) 
+          dumpToBlob(v.asInstanceOf[Serializable])
         } else {
           v
         }
       case None => null
     }
     case k: Key[_] => k.key
+    case m: Mapper[_] => m.key.get.key
     case s: Serializable => dumpToBlob(s)
     case _ => __valueOfProperty
   }
 
-  override def toString = __valueOfProperty.toString
+  override def toString = if (__valueOfProperty == null) "null" else __valueOfProperty.toString
 
   private def __valueClass = __manifest.erasure
   private def __contentClass = __contentManifest.erasure
@@ -83,6 +84,9 @@ case class PropertyOperator[T: ClassManifest](property: BaseProperty[T]) {
 }
 
 object Property {
+  def mock[T: Manifest] = Property(null.asInstanceOf[T])
+  def unindexedMock[T: Manifest] = UnindexedProperty(null.asInstanceOf[T])
+
   implicit def propertyToValue[T](property: BaseProperty[T]): T = property.__valueOfProperty
 
   implicit def shortBlobValueToProperty(value: ShortBlob) = Property(value)

@@ -38,27 +38,7 @@ class Data(
     var person: Property[Person])
   extends Mapper[Data] {
   def this() =
-    this(
-      false,
-      Util.createShortBlob(""),
-      Util.createBlob(""),
-      new Category(""),
-      new Date,
-      new Email(""),
-      0D,
-      new GeoPt(0F, 0F),
-      new User("", ""),
-      0L,
-      new BlobKey(""),
-      Key[Data](KeyFactory.createKey("Data", 1L)),
-      new Link(""),
-      new IMHandle(IMHandle.Scheme.unknown, ""),
-      new PostalAddress(""),
-      new Rating(0),
-      new PhoneNumber(""),
-      "",
-      new Text(""),
-      Person("", 0))
+    this(mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock)
   override def toString() = {
     boolean.toString +
     shortBlob.toString +
@@ -108,28 +88,7 @@ class UnindexedData(
     var person: UnindexedProperty[Person])
   extends Mapper[UnindexedData] {
   def this() =
-    this(
-      false,
-      Util.createShortBlob(""),
-      Util.createBlob(""),
-      new Category(""),
-      new Date,
-      new Email(""),
-      0D,
-      new GeoPt(0F, 0F),
-      new User("", ""),
-      0L,
-      new BlobKey(""),
-      // UnindexedData.createKey(1L),
-      Key[UnindexedData](KeyFactory.createKey("UnindexedData", 1L)),
-      new Link(""),
-      new IMHandle(IMHandle.Scheme.unknown, ""),
-      new PostalAddress(""),
-      new Rating(0),
-      new PhoneNumber(""),
-      "",
-      new Text(""),
-      Person("", 0))
+    this(unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock, unindexedMock)
   override def toString() = {
     boolean.toString +
     shortBlob.toString +
@@ -179,28 +138,7 @@ class SeqData(
     var person: Property[Seq[Person]])
   extends Mapper[SeqData] {
   def this() =
-    this(
-      Seq(false),
-      Seq(Util.createShortBlob("")),
-      Seq(Util.createBlob("")),
-      Seq(new Category("")),
-      Seq(new Date),
-      Seq(new Email("")),
-      Seq(0D),
-      Seq(new GeoPt(0F, 0F)),
-      Seq(new User("", "")),
-      Seq(0L),
-      Seq(new BlobKey("")),
-      // Seq(SeqData.createKey(1L)),
-      Seq(Key[SeqData](KeyFactory.createKey("SeqData", 1L))),
-      Seq(new Link("")),
-      Seq(new IMHandle(IMHandle.Scheme.unknown, "")),
-      Seq(new PostalAddress("")),
-      Seq(new Rating(0)),
-      Seq(new PhoneNumber("")),
-      Seq(""),
-      Seq(new Text("")),
-      Seq(Person("", 0)))
+    this(mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock)
   override def toString() = {
     boolean.mkString +
     shortBlob.mkString +
@@ -250,28 +188,7 @@ class OptionData(
     var person: Property[Option[Person]])
   extends Mapper[OptionData] {
   def this() =
-    this(
-      Option(false),
-      Option(Util.createShortBlob("")),
-      Option(Util.createBlob("")),
-      Option(new Category("")),
-      Option(new Date),
-      Option(new Email("")),
-      Option(0D),
-      Option(new GeoPt(0F, 0F)),
-      Option(new User("", "")),
-      Option(0L),
-      Option(new BlobKey("")),
-      // Option(OptionData.createKey(1L)),
-      Option(Key[OptionData](KeyFactory.createKey("OptionData", 1L))),
-      Option(new Link("")),
-      Option(new IMHandle(IMHandle.Scheme.unknown, "")),
-      Option(new PostalAddress("")),
-      Option(new Rating(0)),
-      Option(new PhoneNumber("")),
-      Option(""),
-      Option(new Text("")),
-      Option(Person("", 0)))
+    this(mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock, mock)
   override def toString() = {
     boolean.toString +
     shortBlob.toString +
@@ -303,7 +220,7 @@ class KeyTestData(
     val dataKeys: Property[Seq[Key[Data]]],
     val dataKeyOption: Property[Option[Key[Data]]])
   extends Mapper[KeyTestData] {
-  def this() = this(Data.createKey(1L), Seq(), None)
+  def this() = this(mock, mock, mock)
 }
 
 object KeyTestData extends KeyTestData
