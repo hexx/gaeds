@@ -19,6 +19,8 @@ class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifes
   def __isUnindexed = false
   def __setToEntity(entity: Entity) = entity.setProperty(__nameOfProperty, __javaValueOfProperty)
   def __contentManifest = __manifest.typeArguments(0)
+  def __contentMapperManifest = __contentManifest.asInstanceOf[Manifest[T] forSome { type T <: Mapper[T] }]
+  def __contentContentMapperManifest = __contentManifest.typeArguments(0).asInstanceOf[Manifest[T] forSome { type T <: Mapper[T] }]
 
   def __javaValueOfProperty = __valueOfProperty match {
     case l: Seq[_] =>

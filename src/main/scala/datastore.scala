@@ -43,15 +43,17 @@ object Datastore {
   def getAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, keys: Key[T]*): Future[Map[Key[T], T]] =
     FutureWrapper(asyncService.get(txn, keys.map(_.key).asJava), wrapGet(_: java.util.Map[LLKey, Entity])(implicitly[ClassManifest[T]]))
 
-  private def wrapPut[T <: Mapper[T]: ClassManifest](mapper: T)(key: LLKey) = {
-    mapper.key = Option(Key(key))
-    Key(key)
+  private def wrapPut[T <: Mapper[T]: ClassManifest](mapper: T)(llkey: LLKey) = {
+    val key = Key(llkey)
+    mapper.key = Option(key)
+    key
   }
-  private def wrapPut[T <: Mapper[T]: ClassManifest](mappers: T*)(keys: java.util.List[LLKey]) = {
-    for ((mapper, key) <- mappers zip keys.asScala) {
-      mapper.key = Option(Key(key))
+  private def wrapPut[T <: Mapper[T]: ClassManifest](mappers: T*)(llkeys: java.util.List[LLKey]) = {
+    val keys = llkeys.asScala.map(Key(_))
+    for ((mapper, key) <- mappers zip keys) {
+      mapper.key = Option(key)
     }
-    keys.asScala.map(Key(_))
+    keys
   }
 
   def put[T <: Mapper[T]: ClassManifest](mapper: T) =
@@ -110,23 +112,19 @@ object Datastore {
       case l: java.util.ArrayList[_] =>
         val l2 = l.asScala
         if (p.__isContentKey) {
-          val classManifest = p.__contentManifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
-          l2.asInstanceOf[Seq[LLKey]].map(Key(_)(classManifest))
+          l2.asInstanceOf[Seq[LLKey]].map(Key(_)(p.__contentContentMapperManifest))
         } else if (p.__isContentSerializable) {
           l2.asInstanceOf[Seq[Blob]].map(loadSerializable)
         } else {
           l2
         }
       case null if p.__isSeq => Seq()
-      case k: LLKey if k != null && !p.__isOption =>
-        val classManifest = p.__manifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
-        Key(k)(classManifest)
+      case k: LLKey if k != null && !p.__isOption => Key(k)(p.__contentMapperManifest)
       case b: Blob if p.__isSerializable && !p.__isOption => loadSerializable(b)
       case _ if p.__isOption => 
         val o = Option(value)
         if (p.__isContentKey) {
-          val classManifest = p.__contentManifest.typeArguments(0).asInstanceOf[ClassManifest[T] forSome { type T <: Mapper[T] }]
-          o.asInstanceOf[Option[LLKey]].map(Key(_)(classManifest))
+          o.asInstanceOf[Option[LLKey]].map(Key(_)(p.__contentContentMapperManifest))
         } else if (p.__isContentSerializable) {
           o.asInstanceOf[Option[Blob]].map(loadSerializable)
         } else {
