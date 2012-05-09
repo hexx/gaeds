@@ -44,7 +44,7 @@ val ps = for (e <- ds.prepare(q).asIterator.asScala) yield {
 ### in gaeds
 
 ```scala
-import com.github.hexx.gaeds.{ Mapper, Property }
+import com.github.hexx.gaeds.{ Datastore, Mapper, Property }
 import com.github.hexx.gaeds.Property._
 
 // data
@@ -59,12 +59,12 @@ object Person extends Person
 
 // put
 val p = new Person("John", 13)
-val key = p.put()
+val key = Datastore.put(p) // or
+val key2 = p.put()
 
 // get
-val p2 = Person.get(key) // or
-val p3 = Datastore.get(key) // or
-val p4 = key.get
+val p2 = Datastore.get(key) // or
+val p3 = key.get
 
 // query
 val ps = Person.query
