@@ -64,7 +64,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T
     } yield (p, m)
   }
 
-  def assignPropertyName() {
+  private def assignPropertyName() {
     for ((p, m) <- zipPropertyAndMethod) {
       p.__nameOfProperty = m.getName
     }
