@@ -7,8 +7,7 @@ gaeds is a simple type-safe Scala wrapper for Google App Engine Datastore.
 
 ```scala
 import scala.collection.JavaConverters._
-import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity }
-import com.google.appengine.api.datastore.Query
+import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity, Query }
 import com.google.appengine.api.datastore.Query.FilterOperator._
 import com.google.appengine.api.datastore.Query.SortDirection._
 
