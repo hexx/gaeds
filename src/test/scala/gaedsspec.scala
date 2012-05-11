@@ -6,30 +6,16 @@ import java.util.Date
 import scala.collection.JavaConverters._
 
 import com.google.appengine.api.blobstore.BlobKey
-import com.google.appengine.api.datastore.{ Key => GAEKey, _ }
+import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity, Query }
+import com.google.appengine.api.datastore.Query.FilterOperator._
+import com.google.appengine.api.datastore.Query.SortDirection._
 import com.google.appengine.api.users.User
 import com.google.appengine.tools.development.testing.{ LocalDatastoreServiceTestConfig, LocalServiceTestHelper }
 
-import com.github.hexx.gaeds._
+import com.github.hexx.gaeds.{ Datastore, Mapper, Key }
 import com.github.hexx.gaeds.Property._
 
 import SampleData._
-
-// low-level sample
-import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity }
-import com.google.appengine.api.datastore.{ Query => GAEQuery }
-import com.google.appengine.api.datastore.Query.FilterOperator._
-import com.google.appengine.api.datastore.Query.SortDirection._
-
-// gaeds sample
-import com.github.hexx.gaeds._
-import com.github.hexx.gaeds.Property._
-
-class Person2(val name: Property[String], val age: Property[Long]) extends Mapper[Person2] {
-  def this() = this(mock, mock)
-  override def toString() = "Person(" + name + "," + age + ")"
-}
-object Person2 extends Person2
 
 class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
   val helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig())
@@ -49,15 +35,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     d1 must be === d2
     d1.key.get must be === d2.key.get
     d1.toString must be === d2.toString
-  }
-
-  def printKey(k: Key[_]) {
-    println(k)
-    println(k.id)
-    println(k.kind)
-    println(k.name)
-    println(k.namespace)
-    println(k.isComplete)
   }
 
   "Entity" should {
@@ -91,7 +68,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val k = d1.put
       val d2 = Datastore.get(k)
       putAndGetTest(k, d1, d2)
-      printSeqData(d2)
       Datastore.delete(k)
     }
     "empty seq put and get" in {
@@ -99,7 +75,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val k = d1.put
       val d2 = Datastore.get(k)
       putAndGetTest(k, d1, d2)
-      printSeqData(d2)
       Datastore.delete(k)
     }
     "option put and get" in {
@@ -107,7 +82,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val k = d1.put
       val d2 = Datastore.get(k)
       putAndGetTest(k, d1, d2)
-      printOptionData(d2)
       Datastore.delete(k)
     }
     "none put and get" in {
@@ -115,7 +89,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val k = d1.put
       val d2 = Datastore.get(k)
       putAndGetTest(k, d1, d2)
-      printOptionData(d2)
       Datastore.delete(k)
     }
     "put and get twice" in {
@@ -134,7 +107,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val k2 = d2.put
       val d3 = Datastore.get(k2)
       putAndGetTest(k2, d1, d3)
-      printSeqData(d3)
       Datastore.delete(k1)
     }
     "update" in {
@@ -220,7 +192,7 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     }
     "low-level api sample" in {
       val ds = DatastoreServiceFactory.getDatastoreService
-      val q = new GAEQuery("Person")
+      val q = new Query("Person")
       q.addFilter("age", GREATER_THAN_OR_EQUAL, 10)
       q.addFilter("age", LESS_THAN_OR_EQUAL, 20)
       q.addSort("age", ASCENDING)

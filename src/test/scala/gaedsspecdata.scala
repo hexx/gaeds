@@ -15,6 +15,11 @@ object Util {
 
 case class Person(name: String, age: Long)
 
+class Person2(val name: Property[String], val age: Property[Long]) extends Mapper[Person2] {
+  def this() = this(mock, mock)
+}
+object Person2 extends Person2
+
 class Data(
     var boolean: Property[Boolean],
     var shortBlob: Property[ShortBlob],
@@ -512,5 +517,14 @@ object SampleData {
     for (p <- ds.person) {
       println(p)
     }
+  }
+
+  def printKey(k: Key[_]) {
+    println(k)
+    println(k.id)
+    println(k.kind)
+    println(k.name)
+    println(k.namespace)
+    println(k.isComplete)
   }
 }

@@ -97,7 +97,7 @@ object Datastore {
   def query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](txn: Transaction, mapper: T, ancestorKey: Key[U], fetchOptions: FetchOptions) =
     new Query(Some(txn), mapper, Some(ancestorKey), fetchOptions)
 
-  def companion[T](implicit classManifest: ClassManifest[T]): Object = Class.forName(classManifest.erasure.getName + "$").getField("MODULE$").get()
+  def companion[T: ClassManifest]: Object = Class.forName(classManifest.erasure.getName + "$").getField("MODULE$").get()
   def mapperCompanion[T <: Mapper[T]: ClassManifest]: T = companion.asInstanceOf[T]
 
   def createMapper[T <: Mapper[T]: ClassManifest](entity: Entity): T = {

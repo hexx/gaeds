@@ -9,7 +9,8 @@ import com.google.appengine.api.datastore.{ Link, PhoneNumber, PostalAddress, Ra
 import com.google.appengine.api.datastore.Query.{ FilterOperator, SortDirection }
 import com.google.appengine.api.users.User
 
-class BaseProperty[T](var __valueOfProperty: T)(implicit val __manifest: Manifest[T]) {
+class BaseProperty[T: Manifest](var __valueOfProperty: T) {
+  val __manifest = implicitly[Manifest[T]]
   var __nameOfProperty: String = _
   def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)

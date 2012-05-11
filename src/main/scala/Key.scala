@@ -3,7 +3,7 @@ package com.github.hexx.gaeds
 import scala.collection.JavaConverters._
 import com.google.appengine.api.datastore.{ Key => LLKey, KeyRange => LLKeyRange }
 
-case class Key[T <: Mapper[T]](val key: LLKey)(implicit val classManifest: ClassManifest[T]) extends Ordered[Key[T]] {
+case class Key[T <: Mapper[T]: ClassManifest](val key: LLKey) extends Ordered[Key[T]] {
   assert(key != null)
   def id = key.getId
   def kind = key.getKind
