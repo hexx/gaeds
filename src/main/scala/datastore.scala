@@ -261,8 +261,8 @@ trait DatastoreDelegate[T <: Mapper[T]] {
   def allocateIds(num: Long) = Datastore.allocateIds(num)
   def allocateIds[U <: Mapper[U]](parent: Key[U], num: Long) = Datastore.allocateIds(parent, num)
 
-  def allocateId(num: Long) = Datastore.allocateId()
-  def allocateId[U <: Mapper[U]](parent: Key[U], num: Long) = Datastore.allocateId(parent)
+  def allocateId() = Datastore.allocateId()
+  def allocateId[U <: Mapper[U]](parent: Key[U]) = Datastore.allocateId(parent)
 
   def createKey(id: Long) = Datastore.createKey(id)
   def createKey(name: String) = Datastore.createKey(name)
