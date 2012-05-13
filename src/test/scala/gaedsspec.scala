@@ -6,7 +6,7 @@ import java.util.Date
 import scala.collection.JavaConverters._
 
 import com.google.appengine.api.blobstore.BlobKey
-import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity, Query }
+import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity, Query, Key => LLKey }
 import com.google.appengine.api.datastore.Query.FilterOperator._
 import com.google.appengine.api.datastore.Query.SortDirection._
 import com.google.appengine.api.users.User
@@ -26,134 +26,168 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     helper.tearDown()
   }
 
-  def putTest[T <: Mapper[T]](k: Key[T], d: T) = {
+  type HasString[T] = { def string: T }
+
+  def putCheck[T <: Mapper[T]](k: Key[T], d: T) {
     k.id must not be 0
     d.key.get must be === k
   }
-  def putAndGetTest[T <: Mapper[T]](k: Key[T], d1: T, d2: T) = {
-    putTest(k, d1)
+  def putAndGetCheck[T <: Mapper[T]](k: Key[T], d1: T, d2: T) {
+    putCheck(k, d1)
     d1 must be === d2
     d1.key.get must be === d2.key.get
     d1.toString must be === d2.toString
   }
+  def putAndGetTest[T <: Mapper[T]: ClassManifest](d1: T) = {
+    val k = d1.put
+    val d2 = Datastore.get(k)
+    putAndGetCheck(k, d1, d2)
+    checkUnindexedProperty(d1) must be === false
+    checkUnindexedProperty(d2) must be === false
+    Datastore.delete(k)
+  }
+  def putAndGetTwiceTest[T <: Mapper[T]: ClassManifest](d1: T) = {
+    val k1 = d1.put
+    val d2 = Datastore.get(k1)
+    val k2 = d2.put
+    val d3 = Datastore.get(k2)
+    putAndGetCheck(k2, d1, d3)
+    Datastore.delete(k1)
+  }
+  def putAndGetUnindexedTest[T <: Mapper[T]: ClassManifest](d1: T) = {
+    val k = d1.put
+    val d2 = Datastore.get(k)
+    putAndGetCheck(k, d1, d2)
+    checkUnindexedProperty(d1) must be === true
+    checkUnindexedProperty(d2) must be === true
+    Datastore.delete(k)
+  }
+  def multiPutAndGetTest[T <: Mapper[T]: ClassManifest](ds1: T*) = {
+    val ks = Datastore.put(ds1:_*)
+    val ds2 = Datastore.get(ks:_*).values.toSeq
+    for (((k, d1), d2) <- ks zip ds1.sortBy(_.key.get) zip ds2.sortBy(_.key.get)) {
+      putAndGetCheck(k, d1, d2)
+    }
+    Datastore.delete(ks:_*)
+  }
+  def updateTest[T <: Mapper[T]: ClassManifest](d1: T, update: T => T) = {
+    val k = update(d1).put
+    val d2 = Datastore.get(k)
+    putAndGetCheck(k, d1, d2)
+    Datastore.delete(k)
+  }
+  def updateTwiceTest[T <: Mapper[T]: ClassManifest](d1: T, update1: T => T, update2: T => T) = {
+    val k1 = update1(d1).put
+    val d2 = Datastore.get(k1)
+    val k2 = update2(d2).put
+    val d3 = Datastore.get(k2)
+    val k3 = update1(d3).put
+    val d4 = Datastore.get(k3)
+    putAndGetCheck(k3, d1, d4)
+    Datastore.delete(k1)
+  }
 
-  "Entity" should {
+  "Mappers" can {
     "put and get" in {
-      val d1 = data
-      val k = d1.put
-      val d2 = Datastore.get(k)
-      putAndGetTest(k, d1, d2)
-      Datastore.delete(k)
+      putAndGetTest(data)
     }
     "multi-put and multi-get" in {
-      val ds1 = Seq(data, data, data)
-      val ks = Datastore.put(ds1:_*)
-      val ds2 = Datastore.get(ks:_*).values.toSeq
-      for (((k, d1), d2) <- ks zip ds1.sortBy(_.key.get) zip ds2.sortBy(_.key.get)) {
-        putAndGetTest(k, d1, d2)
-      }
-      Datastore.delete(ks:_*)
-    }
-    "unindexed put and get" in {
-      val d1 = unindexedData
-      val k = d1.put
-      val d2 = Datastore.get(k)
-      putAndGetTest(k, d1, d2)
-      checkUnindexedProperty(d1) must be === true
-      checkUnindexedProperty(d2) must be === true
-      Datastore.delete(k)
-    }
-    "seq put and get" in {
-      val d1 = seqData
-      val k = d1.put
-      val d2 = Datastore.get(k)
-      putAndGetTest(k, d1, d2)
-      Datastore.delete(k)
-    }
-    "empty seq put and get" in {
-      val d1 = emptySeqData
-      val k = d1.put
-      val d2 = Datastore.get(k)
-      putAndGetTest(k, d1, d2)
-      Datastore.delete(k)
-    }
-    "option put and get" in {
-      val d1 = optionData
-      val k = d1.put
-      val d2 = Datastore.get(k)
-      putAndGetTest(k, d1, d2)
-      Datastore.delete(k)
-    }
-    "none put and get" in {
-      val d1 = noneOptionData
-      val k = d1.put
-      val d2 = Datastore.get(k)
-      putAndGetTest(k, d1, d2)
-      Datastore.delete(k)
+      multiPutAndGetTest(data, data, data)
     }
     "put and get twice" in {
-      val d1 = data
-      val k1 = d1.put
-      val d2 = Datastore.get(k1)
-      val k2 = d2.put
-      val d3 = Datastore.get(k2)
-      putAndGetTest(k2, d1, d3)
-      Datastore.delete(k1)
-    }
-    "seq put and get twice" in {
-      val d1 = seqData
-      val k1 = d1.put
-      val d2 = Datastore.get(k1)
-      val k2 = d2.put
-      val d3 = Datastore.get(k2)
-      putAndGetTest(k2, d1, d3)
-      Datastore.delete(k1)
+      putAndGetTwiceTest(data)
     }
     "update" in {
-      val d1 = data
-      d1.string = "newstring"
-      val k = d1.put
-      val d2 = Datastore.get(k)
-      putAndGetTest(k, d1, d2)
-      Datastore.delete(k)
+      updateTest(data, { d: Data => d.string = "newstring"; d })
     }
     "update twice" in {
-      val d1 = data
-      d1.string = "newstring"
-      val k1 = d1.put
-      val d2 = Datastore.get(k1)
-      d2.string = "string"
-      val k2 = d2.put
-      val d3 = Datastore.get(k2)
-      d3.string = "newstring"
-      val k3 = d3.put
-      val d4 = Datastore.get(k3)
-      putAndGetTest(k3, d1, d4)
-      Datastore.delete(k1)
+      updateTwiceTest(data, { d: Data => d.string = "newstring"; d }, { d: Data => d.string = "string"; d })
     }
-    "load key property" in {
-      val d1 = data
-      val k1 = d1.put
-      val d2 = new KeyTestData(k1, Seq(k1), Option(k1))
-      val k2 = d2.put
-      val d3 = k2.get
-      val d4 = d3.dataKey.get
-      putAndGetTest(k1, d1, d4)
-      val d5 = d3.dataKeys(0).get
-      putAndGetTest(k1, d1, d5)
-      val d6 = d3.dataKeyOption.get.get
-      putAndGetTest(k1, d1, d6)
-    }
-    "transaction sample" in {
+    "put and get using transactions" in {
       val d1 = data
       val k = d1.put
       Datastore.transaction {
         val d2 = Datastore.get(k)
-        putAndGetTest(k, d1, d2)
+        putAndGetCheck(k, d1, d2)
         Datastore.delete(k)
       }
     }
-    "low-level api sample" in {
+  }
+  "Mappers have Unindexed Properties" can {
+    "put and get" in {
+      putAndGetUnindexedTest(unindexedData)
+    }
+  }
+  "Mappers have Seq Properties" can {
+    "put and get" in {
+      putAndGetTest(seqData)
+    }
+    "put and get twice" in {
+      putAndGetTwiceTest(seqData)
+    }
+  }
+  "Mappers have empty Seq Properties" can {
+    "put and get" in {
+      putAndGetTest(emptySeqData)
+    }
+  }
+  "Mappers have Option Properties" can {
+    "put and get" in {
+      putAndGetTest(optionData)
+    }
+  }
+  "Mappers have None Properties" can {
+    "put and get" in {
+      putAndGetTest(noneOptionData)
+    }
+  }
+  "Key Properties" should {
+    "be saved as Low-Level Key" in {
+      val d1 = data
+      val k1 = d1.put
+      val d2 = new KeyTestData(k1, Seq(k1), Option(k1))
+      val e = d2.toEntity
+      e.getProperty("dataKey").asInstanceOf[LLKey] must be ===  k1.key
+      e.getProperty("dataKeys").asInstanceOf[java.util.List[LLKey]].get(0) must be ===  k1.key
+      e.getProperty("dataKeyOption").asInstanceOf[LLKey] must be ===  k1.key
+      val k2 = d2.put
+      val d3 = k2.get
+      val d4 = d3.dataKey.get
+      putAndGetCheck(k1, d1, d4)
+      val d5 = d3.dataKeys(0).get
+      putAndGetCheck(k1, d1, d5)
+      val d6 = d3.dataKeyOption.get.get
+      putAndGetCheck(k1, d1, d6)
+    }
+  }
+  "Queries" when {
+    "there is only one Mapper" should {
+      "be single" in {
+        val d1 = data
+        val k = d1.put
+        val d2 = Data.query.asIterator.next
+        val d3 = Data.query.asSingle
+        Data.query.count must be === 1
+        putAndGetCheck(k, d1, d2)
+        putAndGetCheck(k, d1, d3)
+        Datastore.delete(k)
+      }
+    }
+  }
+  "Queries" should {
+    "be the same result with Low-Level API" in {
+      val ds = Seq(data, data, data)
+      Datastore.put(ds:_*)
+      val ite1 = Data.query.asQueryResultIterator(false)
+      val ite2 = Data.query.asIteratorWithCursorAndIndex
+      for ((e, (d, c, i)) <- ite1.asScala zip ite2) {
+        ite1.getCursor must be === c()
+        Data.fromEntity(e) must be === d
+      }
+    }
+  }
+  "gaeds" should {
+    "provide a low-level api put and get sample" in {
       val ds = DatastoreServiceFactory.getDatastoreService
       val p = Person("John", 13)
       val e = new Entity("Person")
@@ -164,33 +198,13 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val e2 = ds.get(key)
       val p2 = Person(e2.getProperty("name").asInstanceOf[String], e2.getProperty("age").asInstanceOf[Long])
     }
-    "gaeds sample" in {
+    "provide a gaeds put and get sample" in {
       val p = new Person2("John", 13)
       val key = p.put()
 
       val p2 = Datastore.get(key)
     }
-  }
-  "Query" should {
-    "basic" in {
-      val d1 = data
-      val k = d1.put
-      val d2 = Data.query.asIterator.next
-      Data.query.count must be === 1
-      Datastore.delete(k)
-      d1 must be === d2
-    }
-    "QueryResult" in {
-      val ds = Seq(data, data, data)
-      Datastore.put(ds:_*)
-      val ite1 = Data.query.asQueryResultIterator(false)
-      val ite2 = Data.query.asIteratorWithCursorAndIndex
-      for ((e, (d, c, i)) <- ite1.asScala zip ite2) {
-        ite1.getCursor must be === c()
-        Data.fromEntity(e) must be === d
-      }
-    }
-    "low-level api sample" in {
+    "provide a low-level api query sample" in {
       val ds = DatastoreServiceFactory.getDatastoreService
       val q = new Query("Person")
       q.addFilter("age", GREATER_THAN_OR_EQUAL, 10)
@@ -201,7 +215,7 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
         Person(e.getProperty("name").asInstanceOf[String], e.getProperty("age").asInstanceOf[Long])
       }
     }
-    "gaeds sample" in {
+    "provide a gaeds query sample" in {
       val ps = Person2.query.filter(_.age #>= 10).filter(_.age #<= 20).sort(_.age asc).sort(_.name asc).asIterator
     }
   }
