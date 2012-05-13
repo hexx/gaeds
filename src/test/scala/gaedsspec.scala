@@ -204,6 +204,16 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       }
     }
   }
+  "Queries" can {
+    "filter and sort" in {
+      Datastore.put(new Person2("John", 18), new Person2("Mike", 12), new Person2("Mary", 15))
+      Person2.query.filter(_.age #> 13).sort(_.age asc).count must be === 2
+      val ite = Person2.query.filter(_.age #> 13).sort(_.age asc).asIterator
+      ite.next.age.__valueOfProperty must be === 15
+      ite.next.age.__valueOfProperty must be === 18
+      ite.hasNext must be === false
+    }
+  }
   "Queries" should {
     "be the same result with Low-Level API" in {
       val ds = Seq(data, data, data)
