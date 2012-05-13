@@ -38,8 +38,15 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     d1.key.get must be === d2.key.get
     d1.toString must be === d2.toString
   }
-  def putAndGetTest[T <: Mapper[T]: ClassManifest](d1: T) = {
-    val k = d1.put
+  def putAndGetTest[T <: Mapper[T]: ClassManifest](d1: T, key: Option[Key[T]] = None) = {
+    val k = key match {
+      case Some(k) => {
+        d1.key = key
+        d1.put
+        k
+      }
+      case None => d1.put
+    }
     val d2 = Datastore.get(k)
     putAndGetCheck(k, d1, d2)
     checkUnindexedProperty(d1) must be === false
@@ -86,6 +93,20 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     putAndGetCheck(k3, d1, d4)
     Datastore.delete(k1)
   }
+  def putAndGetAsyncTest[T <: Mapper[T]: ClassManifest](d1: T) = {
+    val k = d1.putAsync.get
+    val d2 = Datastore.getAsync(k).get
+    putAndGetCheck(k, d1, d2)
+    Datastore.deleteAsync(k)
+  }
+  def multiPutAndGetAsyncTest[T <: Mapper[T]: ClassManifest](ds1: T*) = {
+    val ks = Datastore.putAsync(ds1:_*).get
+    val ds2 = Datastore.getAsync(ks:_*).get.values.toSeq
+    for (((k, d1), d2) <- ks zip ds1.sortBy(_.key.get) zip ds2.sortBy(_.key.get)) {
+      putAndGetCheck(k, d1, d2)
+    }
+    Datastore.deleteAsync(ks:_*)
+  }
 
   "Mappers" can {
     "put and get" in {
@@ -111,6 +132,15 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
         putAndGetCheck(k, d1, d2)
         Datastore.delete(k)
       }
+    }
+    "put and get asynchronously" in {
+      putAndGetAsyncTest(data)
+    }
+    "multi-put and multi-get asynchronously" in {
+      multiPutAndGetAsyncTest(data)
+    }
+    "put and get using allocated ids" in {
+      putAndGetTest(data, Some(Data.allocateId))
     }
   }
   "Mappers have Unindexed Properties" can {
