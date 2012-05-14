@@ -1,9 +1,11 @@
 # gaeds
-gaeds is a simple type-safe Scala wrapper for Google App Engine Datastore.
 
-## Sample
+Gaeds is a simple type-safe Scala wrapper for Google App Engine Datastore.
+It provides an Object/Entity mapper and a query DSL.
 
-### in Google App Engine Low-Level API
+## Sample to compare with a low-level API
+
+### in Google App Engine low-level API
 
 ```scala
 import scala.collection.JavaConverters._
