@@ -17,7 +17,7 @@ import com.github.hexx.gaeds.Property._
 
 import SampleData._
 
-class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
+class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
   val helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig())
   before {
     helper.setUp()
@@ -25,8 +25,6 @@ class GAEDSSpec extends WordSpec with BeforeAndAfter with MustMatchers {
   after {
     helper.tearDown()
   }
-
-  type HasString[T] = { def string: T }
 
   def putCheck[T <: Mapper[T]](k: Key[T], d: T) {
     k.id must not be 0
