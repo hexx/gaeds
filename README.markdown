@@ -20,8 +20,9 @@ val kind = "Person"
 
 case class Person(name: String, age: Long)
 
-// put
 val p = Person("John", 13)
+
+// put
 val e = new Entity(kind)
 e.setProperty("name", p.name)
 e.setProperty("age", p.age)
@@ -58,8 +59,9 @@ class Person(
 
 object Person extends Person
 
-// put
 val p = new Person("John", 13)
+
+// put
 val key = Datastore.put(p) // or
 val key2 = p.put()
 
