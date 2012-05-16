@@ -44,7 +44,7 @@ pomExtra := (
   </developers>)
 
 libraryDependencies ++= {
-  val appengineVersion = "1.6.3.1"
+  val appengineVersion = "1.6.5"
   Seq(
     "com.google.appengine" % "appengine-api-1.0-sdk" % appengineVersion,
     "com.google.appengine" % "appengine-api-stubs"   % appengineVersion % "test",
