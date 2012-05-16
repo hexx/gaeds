@@ -65,13 +65,13 @@ object Datastore {
   def put[T <: Mapper[T]: ClassManifest](txn: Transaction, mappers: T*) =
     wrapPut(mappers:_*)(service.put(txn, mappers.map(_.toEntity).asJava))
 
-  def putAsync[T <: Mapper[T]: ClassManifest](mapper: T) =
+  def putAsync[T <: Mapper[T]: ClassManifest](mapper: T): Future[Key[T]] =
     FutureWrapper(asyncService.put(mapper.toEntity), wrapPut(mapper) _)
-  def putAsync[T <: Mapper[T]: ClassManifest](mappers: T*) =
+  def putAsync[T <: Mapper[T]: ClassManifest](mappers: T*): Future[Seq[Key[T]]] =
     FutureWrapper(asyncService.put(mappers.map(_.toEntity).asJava), wrapPut(mappers:_*) _)
-  def putAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T) =
+  def putAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T): Future[Key[T]] =
     FutureWrapper(asyncService.put(txn, mapper.toEntity), wrapPut(mapper) _)
-  def putAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mappers: T*) =
+  def putAsync[T <: Mapper[T]: ClassManifest](txn: Transaction, mappers: T*): Future[Seq[Key[T]]] =
     FutureWrapper(asyncService.put(txn, mappers.map(_.toEntity).asJava), wrapPut(mappers:_*) _)
 
   def delete[T <: Mapper[T]](keys: Key[T]*) = service.delete(keys.map(_.key):_*)
