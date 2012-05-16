@@ -58,11 +58,11 @@ object Datastore {
 
   def put[T <: Mapper[T]: ClassManifest](mapper: T) =
     wrapPut(mapper)(service.put(mapper.toEntity))
-  def put[T <: Mapper[T]: ClassManifest](mappers: T*) =
+  def put[T <: Mapper[T]: ClassManifest](mappers: T*): Seq[Key[T]] =
     wrapPut(mappers:_*)(service.put(mappers.map(_.toEntity).asJava))
   def put[T <: Mapper[T]: ClassManifest](txn: Transaction, mapper: T) =
     wrapPut(mapper)(service.put(txn, mapper.toEntity))
-  def put[T <: Mapper[T]: ClassManifest](txn: Transaction, mappers: T*) =
+  def put[T <: Mapper[T]: ClassManifest](txn: Transaction, mappers: T*): Seq[Key[T]] =
     wrapPut(mappers:_*)(service.put(txn, mappers.map(_.toEntity).asJava))
 
   def putAsync[T <: Mapper[T]: ClassManifest](mapper: T): Future[Key[T]] =
@@ -211,7 +211,7 @@ object Datastore {
     KeyFactory.createKeyString(parent.key, mapperCompanion[T].kind, name)
 
   def keyToString[T <: Mapper[T]](key: Key[T]) = KeyFactory.keyToString(key.key)
-  def stringToKey[T <: Mapper[T]](encoded: String) = Key(KeyFactory.stringToKey(encoded))
+  def stringToKey[T <: Mapper[T]: ClassManifest](encoded: String) = Key[T](KeyFactory.stringToKey(encoded))
 
   // wrapping KeyBuilder
   class KeyBuilder[T <: Mapper[T]: ClassManifest](builder: KeyFactory.Builder) {
