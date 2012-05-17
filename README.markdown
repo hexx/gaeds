@@ -6,9 +6,15 @@ Gaeds is a simple type-safe Scala wrapper for Google App Engine Datastore.
 
 - Gaeds provides an Object/Entity mapper with a type-safe Key.
 - Gaeds provides a type-safe query DSL.
-- Gaeds persists `Serializable` objects (includes Case Class in Scala).
+- Gaeds persists `Serializable` objects (include Case Class in Scala).
 - Gaeds deals with `null` properties as `Option` objects.
 - Gaeds is very simple, does not depend on other libraries.
+
+## Using Gaeds
+
+Add the following to your sbt configuration.
+
+    libraryDependencies += "com.github.hexx" %% "gaeds" % "0.0.3"
 
 ## Sample to compare with a low-level API
 
