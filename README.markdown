@@ -50,7 +50,7 @@ val ps = for (e <- ds.prepare(q).asIterator.asScala) yield {
 }
 ```
 
-### in gaeds
+### in Gaeds
 
 ```scala
 import com.github.hexx.gaeds.{ Datastore, Mapper, Property }
