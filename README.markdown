@@ -14,7 +14,7 @@ Gaeds is a simple type-safe Scala wrapper for Google App Engine Datastore.
 
 Add the following to your sbt configuration.
 
-    libraryDependencies += "com.github.hexx" %% "gaeds" % "0.0.3"
+    libraryDependencies += "com.github.hexx" %% "gaeds" % "0.1.0"
 
 ## Sample to compare with a low-level API
 
