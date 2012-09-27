@@ -6,7 +6,7 @@ version := "0.1.1"
 
 scalaVersion := "2.9.2"
 
-crossScalaVersions := Seq("2.9.2")
+crossScalaVersions := Seq("2.9.1", "2.9.1-1", "2.9.2")
 
 scalacOptions ++= Seq("-deprecation", "-unchecked")
 
@@ -51,6 +51,6 @@ libraryDependencies ++= {
     "com.google.appengine" % "appengine-api-1.0-sdk" % appengineVersion,
     "com.google.appengine" % "appengine-api-stubs"   % appengineVersion % "test",
     "com.google.appengine" % "appengine-testing"     % appengineVersion % "test",
-    "org.scalatest" %% "scalatest" % "1.8" % "test" cross CrossVersion.full
+    "org.scalatest" %% "scalatest" % "1.8" % "test"
   )
 }
