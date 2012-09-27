@@ -2,7 +2,7 @@ organization := "com.github.hexx"
 
 name := "gaeds"
 
-version := "0.1.0"
+version := "0.1.1"
 
 scalaVersion := "2.9.2"
 
@@ -46,11 +46,11 @@ pomExtra := (
   </developers>)
 
 libraryDependencies ++= {
-  val appengineVersion = "1.6.5"
+  val appengineVersion = "1.7.2"
   Seq(
     "com.google.appengine" % "appengine-api-1.0-sdk" % appengineVersion,
     "com.google.appengine" % "appengine-api-stubs"   % appengineVersion % "test",
     "com.google.appengine" % "appengine-testing"     % appengineVersion % "test",
-    "org.scalatest" %% "scalatest" % "1.7.1" % "test"
+    "org.scalatest" %% "scalatest" % "1.8" % "test" cross CrossVersion.full
   )
 }

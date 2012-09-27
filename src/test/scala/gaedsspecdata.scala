@@ -371,8 +371,8 @@ object SampleData {
 
   def checkUnindexedProperty[T <: Mapper[T]](ds: T) = {
     var entity = ds.toEntity
-    entity.isUnindexedProperty("boolean") && 
-    entity.isUnindexedProperty("shortBlob") && 
+    entity.isUnindexedProperty("boolean") &&
+    entity.isUnindexedProperty("shortBlob") &&
     entity.isUnindexedProperty("blob") &&
     entity.isUnindexedProperty("category") &&
     entity.isUnindexedProperty("date") &&
