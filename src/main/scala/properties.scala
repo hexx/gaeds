@@ -34,7 +34,7 @@ class BaseProperty[T: Manifest](var __valueOfProperty: T) {
       }
       l2.asJava
     case o: Option[_] => o match {
-      case Some(v) => 
+      case Some(v) =>
         if (__isContentKey) {
           v.asInstanceOf[Key[_]].key
         } else if (__isContentSerializable) {
@@ -71,7 +71,6 @@ case class UnindexedProperty[T: Manifest](__valueOfPropertyArg: T) extends BaseP
   override def __setToEntity(entity: Entity) = entity.setUnindexedProperty(__nameOfProperty, __javaValueOfProperty)
 }
 
-case class FilterPredicate[T](property: BaseProperty[T], operator: FilterOperator, value: T*)
 case class SortPredicate(property: BaseProperty[_], direction: SortDirection)
 
 case class PropertyOperator[T: ClassManifest](property: BaseProperty[T]) {

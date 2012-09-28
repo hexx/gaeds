@@ -11,14 +11,15 @@ class Query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](
     ancestorKey: Option[Key[U]],
     fetchOptions: FetchOptions = FetchOptions.Builder.withDefaults,
     _reverse: Boolean = false,
-    filterPredicate: List[FilterPredicate[_]] = List(),
+    _filter: Option[Filter] = None,
     sortPredicate: List[SortPredicate] = List()) {
-  def addFilter(f: T => FilterPredicate[_]) =
-    new Query(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate :+ f(mapper), sortPredicate)
-  def filter(f: T => FilterPredicate[_]) = addFilter(f)
+  def filter(f: T => Filter) = {
+    val newFilter = Some(_filter map (_ and f(mapper)) getOrElse f(mapper))
+    new Query(txn, mapper, ancestorKey, fetchOptions, _reverse, newFilter, sortPredicate)
+  }
 
   def addSort(f: T => SortPredicate) =
-    new Query(txn, mapper, ancestorKey, fetchOptions, _reverse, filterPredicate, sortPredicate :+ f(mapper))
+    new Query(txn, mapper, ancestorKey, fetchOptions, _reverse, _filter, sortPredicate :+ f(mapper))
   def sort(f: T => SortPredicate) = addSort(f)
 
   def asEntityIterator(keysOnly: Boolean) = prepare(keysOnly).asIterator(fetchOptions).asScala
@@ -47,20 +48,14 @@ class Query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](
     case None => Datastore.service.prepare(toQuery(keysOnly))
   }
 
-  def reverse() = new Query(txn, mapper, ancestorKey, fetchOptions, !_reverse, filterPredicate, sortPredicate)
+  def reverse() = new Query(txn, mapper, ancestorKey, fetchOptions, !_reverse, _filter, sortPredicate)
 
   def toQuery(keysOnly: Boolean) = {
     val query = ancestorKey match {
       case Some(k) => new LLQuery(mapper.kind, k.key)
       case None => new LLQuery(mapper.kind)
     }
-    for (p <- filterPredicate) {
-      if (p.operator == FilterOperator.IN) {
-        query.addFilter(p.property.__nameOfProperty, p.operator, p.value.asJava)
-      } else {
-        query.addFilter(p.property.__nameOfProperty, p.operator, p.value(0))
-      }
-    }
+    _filter foreach (query setFilter _.toFilter)
     for (p <- sortPredicate) {
       query.addSort(p.property.__nameOfProperty, p.direction)
     }
@@ -75,15 +70,15 @@ class Query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](
 
   // wrapping FetchOptions
   def startCursor(cursor: Cursor) =
-    new Query(txn, mapper, ancestorKey, fetchOptions.startCursor(cursor), _reverse, filterPredicate, sortPredicate)
+    new Query(txn, mapper, ancestorKey, fetchOptions.startCursor(cursor), _reverse, _filter, sortPredicate)
   def endCursor(cursor: Cursor) =
-    new Query(txn, mapper, ancestorKey, fetchOptions.endCursor(cursor), _reverse, filterPredicate, sortPredicate)
+    new Query(txn, mapper, ancestorKey, fetchOptions.endCursor(cursor), _reverse, _filter, sortPredicate)
   def chunkSize(size: Int) =
-    new Query(txn, mapper, ancestorKey, fetchOptions.chunkSize(size), _reverse, filterPredicate, sortPredicate)
+    new Query(txn, mapper, ancestorKey, fetchOptions.chunkSize(size), _reverse, _filter, sortPredicate)
   def limit(limit: Int) =
-    new Query(txn, mapper, ancestorKey, fetchOptions.limit(limit), _reverse, filterPredicate, sortPredicate)
+    new Query(txn, mapper, ancestorKey, fetchOptions.limit(limit), _reverse, _filter, sortPredicate)
   def offset(offset: Int) =
-    new Query(txn, mapper, ancestorKey, fetchOptions.offset(offset), _reverse, filterPredicate, sortPredicate)
+    new Query(txn, mapper, ancestorKey, fetchOptions.offset(offset), _reverse, _filter, sortPredicate)
   def prefetchSize(size: Int) =
-    new Query(txn, mapper, ancestorKey, fetchOptions.prefetchSize(size), _reverse, filterPredicate, sortPredicate)
+    new Query(txn, mapper, ancestorKey, fetchOptions.prefetchSize(size), _reverse, _filter, sortPredicate)
 }

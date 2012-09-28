@@ -13,7 +13,7 @@ object Datastore {
   val asyncService = DatastoreServiceFactory.getAsyncDatastoreService
 
   case class FutureWrapper[T, U](underlying: Future[T], f: T => U) extends Future[U] {
-    def	cancel(mayInterruptIfRunning: Boolean) = underlying.cancel(mayInterruptIfRunning)
+    def cancel(mayInterruptIfRunning: Boolean) = underlying.cancel(mayInterruptIfRunning)
     def get(): U = f(underlying.get())
     def get(timeout: Long, unit: TimeUnit): U = f(underlying.get(timeout, unit))
     def isCancelled() = underlying.isCancelled
@@ -121,7 +121,7 @@ object Datastore {
       case null if p.__isSeq => Seq()
       case k: LLKey if k != null && !p.__isOption => Key(k)(p.__contentMapperManifest)
       case b: Blob if p.__isSerializable && !p.__isOption => loadSerializable(b)
-      case _ if p.__isOption => 
+      case _ if p.__isOption =>
         val o = Option(value)
         if (p.__isContentKey) {
           o.asInstanceOf[Option[LLKey]].map(Key(_)(p.__contentContentMapperManifest))

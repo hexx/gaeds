@@ -7,6 +7,7 @@ import scala.collection.JavaConverters._
 
 import com.google.appengine.api.blobstore.BlobKey
 import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity, Query, Key => LLKey }
+import com.google.appengine.api.datastore.Query.{ CompositeFilterOperator, FilterPredicate }
 import com.google.appengine.api.datastore.Query.FilterOperator._
 import com.google.appengine.api.datastore.Query.SortDirection._
 import com.google.appengine.api.users.User
@@ -211,6 +212,20 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       ite.next.age.__valueOfProperty must be === 18
       ite.hasNext must be === false
     }
+    "use 'and' filter operator" in {
+      Datastore.put(new Person2("John", 8), new Person2("Mike", 20), new Person2("Mary", 30), new Person2("Paul", 40))
+      val ite = Person2.query.filter(p => p.age #> 10 and p.age #< 40).sort(_.age asc).asIterator
+      ite.next.age.__valueOfProperty must be === 20
+      ite.next.age.__valueOfProperty must be === 30
+      ite.hasNext must be === false
+    }
+    "use 'or' filter operator" in {
+      Datastore.put(new Person2("John", 8), new Person2("Mike", 20), new Person2("Mary", 30), new Person2("Paul", 40))
+      val ite = Person2.query.filter(p => p.age #< 10 or p.age #> 30).sort(_.age asc).asIterator
+      ite.next.age.__valueOfProperty must be === 8
+      ite.next.age.__valueOfProperty must be === 40
+      ite.hasNext must be === false
+    }
   }
   "Queries" should {
     "be the same result with Low-Level API" in {
@@ -245,8 +260,9 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     "provide a low-level api query sample" in {
       val ds = DatastoreServiceFactory.getDatastoreService
       val q = new Query("Person")
-      q.addFilter("age", GREATER_THAN_OR_EQUAL, 10)
-      q.addFilter("age", LESS_THAN_OR_EQUAL, 20)
+      val f1 = new FilterPredicate("age", GREATER_THAN_OR_EQUAL, 10)
+      val f2 = new FilterPredicate("age", LESS_THAN_OR_EQUAL, 20)
+      q.setFilter(CompositeFilterOperator.and(f1, f2))
       q.addSort("age", ASCENDING)
       q.addSort("name", ASCENDING)
       val ps = for (e <- ds.prepare(q).asIterator.asScala) yield {
@@ -254,7 +270,7 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       }
     }
     "provide a gaeds query sample" in {
-      val ps = Person2.query.filter(_.age #>= 10).filter(_.age #<= 20).sort(_.age asc).sort(_.name asc).asIterator
+      val ps = Person2.query.filter(p => (p.age #>= 10) and (p.age #<= 20)).sort(_.age asc).sort(_.name asc).asIterator
     }
   }
 }

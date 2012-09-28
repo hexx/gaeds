@@ -47,8 +47,9 @@ val p2 = Person(e2.getProperty("name").asInstanceOf[String], e2.getProperty("age
 
 // query
 val q = new Query(kind)
-q.addFilter("age", GREATER_THAN_OR_EQUAL, 10)
-q.addFilter("age", LESS_THAN_OR_EQUAL, 20)
+val f1 = new FilterPredicate("age", GREATER_THAN_OR_EQUAL, 10)
+val f2 = new FilterPredicate("age", LESS_THAN_OR_EQUAL, 20)
+q.setFilter(CompositeFilterOperator.and(f1, f2))
 q.addSort("age", ASCENDING)
 q.addSort("name", ASCENDING)
 val ps = for (e <- ds.prepare(q).asIterator.asScala) yield {
@@ -84,8 +85,7 @@ val p3 = key.get
 
 // query
 val ps = Person.query
-    .filter(_.age #>= 10)
-    .filter(_.age #<= 20)
+    .filter(p => (p.age #>= 10) and (p.age #<= 20))
     .sort(_.age asc)
     .sort(_.name asc)
     .asIterator
