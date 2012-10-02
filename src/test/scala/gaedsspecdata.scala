@@ -528,8 +528,6 @@ object SampleData {
     println(k.namespace)
     println(k.isComplete)
   }
-
-  def dataJson = """{"boolean":true,"long":123,"double":1.23,"date":"2012-01-01T00:00:00.000Z","text":"text","string":"string","user":{"authDomain":"gmail.com","email":"test@gmail.com","federatedIdentity":null,"userId":null},"keyValue":"agR0ZXN0cgoLEgREYXRhGAIM","shortBlob":"c2hvcnRCbG9i","blob":"YmxvYg==","category":"category","email":"email","geoPt":{"latitude":1.2300000190734863,"longitude":1.2300000190734863},"blobKey":"blobKey","link":"http://www.google.com/","imHandle":{"address":"imHandle","protocol":"sip"},"postalAddress":"postalAddress","rating":1,"phoneNumber":"0","person":"{\"name\":\"John\",\"age\":15}"}"""
 }
 
 class Message(

@@ -144,7 +144,6 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       putAndGetTest(data, Some(Data.allocateId))
     }
     "serialize to JSON" in {
-      compact(render(data.toJObject)) must be === dataJson
       val d = data
       val k = d.put
       putAndGetCheck(k, d, Data.fromJObject(d.toJObject))
