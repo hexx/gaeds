@@ -1,19 +1,38 @@
 package com.github.hexx.gaeds
 
-import java.io.{ ByteArrayOutputStream, ObjectOutputStream }
+import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream }
 import java.util.Date
 import scala.collection.JavaConverters._
 import com.google.appengine.api.blobstore.BlobKey
 import com.google.appengine.api.datastore.{ Blob, Category, Email, Entity, GeoPt, IMHandle }
 import com.google.appengine.api.datastore.{ Link, PhoneNumber, PostalAddress, Rating, ShortBlob, Text }
+import com.google.appengine.api.datastore.{ Key => LLKey }
 import com.google.appengine.api.datastore.Query.{ FilterOperator, SortDirection }
 import com.google.appengine.api.users.User
+import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
+import org.apache.commons.codec.binary.Base64
 
 class BaseProperty[T: Manifest](var __valueOfProperty: T) {
   val __manifest = implicitly[Manifest[T]]
   var __nameOfProperty: String = _
   def __isOption = classOf[Option[_]].isAssignableFrom(__valueClass)
   def __isSeq = classOf[Seq[_]].isAssignableFrom(__valueClass)
+  def __isDate = classOf[Date].isAssignableFrom(__valueClass)
+  def __isCategory = classOf[Category].isAssignableFrom(__valueClass)
+  def __isShortBlob = classOf[ShortBlob].isAssignableFrom(__valueClass)
+  def __isBlob = classOf[Blob].isAssignableFrom(__valueClass)
+  def __isEmail = classOf[Email].isAssignableFrom(__valueClass)
+  def __isGeoPt = classOf[GeoPt].isAssignableFrom(__valueClass)
+  def __isUser = classOf[User].isAssignableFrom(__valueClass)
+  def __isBlobKey = classOf[BlobKey].isAssignableFrom(__valueClass)
+  def __isKey = classOf[Key[_]].isAssignableFrom(__valueClass)
+  def __isLink = classOf[Link].isAssignableFrom(__valueClass)
+  def __isIMHandle = classOf[IMHandle].isAssignableFrom(__valueClass)
+  def __isPostalAddress = classOf[PostalAddress].isAssignableFrom(__valueClass)
+  def __isRating = classOf[Rating].isAssignableFrom(__valueClass)
+  def __isPhoneNumber = classOf[PhoneNumber].isAssignableFrom(__valueClass)
+  def __isText = classOf[Text].isAssignableFrom(__valueClass)
   def __isSerializable = classOf[Serializable].isAssignableFrom(__valueClass)
   def __isContentSerializable = classOf[Serializable].isAssignableFrom(__contentClass)
   def __isContentKey = classOf[Key[_]].isAssignableFrom(__contentClass)
@@ -50,6 +69,103 @@ class BaseProperty[T: Manifest](var __valueOfProperty: T) {
     case _ => __valueOfProperty
   }
 
+  def __jvalueOfProperty(implicit formats: Formats = DefaultFormats) = valueToJValue(__valueOfProperty)(formats)
+
+  def __jfieldOfProperty(implicit formats: Formats = DefaultFormats) = propertyToJField(this)(formats)
+
+  def __llvalueToScalaValue(value: Any) = {
+    def loadSerializable(b: Blob) = {
+      val in = new ObjectInputStream(new ByteArrayInputStream(b.getBytes))
+      val s = in.readObject.asInstanceOf[Serializable]
+      in.close()
+      s
+    }
+
+    value match {
+      case l: java.util.ArrayList[_] => {
+        val l2 = l.asScala
+        if (__isContentKey) {
+          l2.asInstanceOf[Seq[LLKey]].map(Key(_)(__contentContentMapperManifest))
+        } else if (__isContentSerializable) {
+          l2.asInstanceOf[Seq[Blob]].map(loadSerializable)
+        } else {
+          l2
+        }
+      }
+      case null if __isSeq => Seq()
+      case k: LLKey if k != null && !__isOption => Key(k)(__contentMapperManifest)
+      case b: Blob if __isSerializable && !__isOption => loadSerializable(b)
+      case _ if __isOption => {
+        val o = Option(value)
+        if (__isContentKey) {
+          o.asInstanceOf[Option[LLKey]].map(Key(_)(__contentContentMapperManifest))
+        } else if (__isContentSerializable) {
+          o.asInstanceOf[Option[Blob]].map(loadSerializable)
+        } else {
+          o
+        }
+      }
+      case _ => value
+    }
+  }
+
+  def __jvalueToScalaValue(value: JValue)(implicit formats: Formats = DefaultFormats): Any = {
+    def jobjectToGeoPt(jobject: JObject): GeoPt = {
+      val map = jobject.values
+      new GeoPt(
+        map("latitude").asInstanceOf[Double].asInstanceOf[Float],
+        map("longitude").asInstanceOf[Double].asInstanceOf[Float]
+      )
+    }
+
+    def jobjectToUser(jobject: JObject): User = {
+      val map = jobject.values
+      (map("email").asInstanceOf[String],
+       map("authDomain").asInstanceOf[String],
+       map("userId").asInstanceOf[String],
+       map("federatedIdentity").asInstanceOf[String]) match {
+         case (e, a, null, null) => new User(e, a)
+         case (e, a, u,    null) => new User(e, a, u)
+         case (e, a, u,    i   ) => new User(e, a, u, i)
+       }
+    }
+
+    def jobjectToIMHandle(jobject: JObject) = {
+      val map = jobject.values
+      new IMHandle(
+        IMHandle.Scheme.valueOf(map("protocol").asInstanceOf[String]),
+        map("address").asInstanceOf[String]
+      )
+    }
+
+    value match {
+      case JBool(b)                        => b
+      case JString(s) if __isDate          => DefaultFormats.lossless.dateFormat.parse(s).get
+      case JString(s) if __isCategory      => new Category(s)
+      case JString(s) if __isEmail         => new Email(s)
+      case JString(s) if __isBlobKey       => new BlobKey(s)
+      case JString(s) if __isKey           => Key.fromWebSafeString(s)(__contentMapperManifest)
+      case JString(s) if __isLink          => new Link(s)
+      case JString(s) if __isPostalAddress => new PostalAddress(s)
+      case JString(s) if __isPhoneNumber   => new PhoneNumber(s)
+      case JString(s) if __isText          => new Text(s)
+      case JString(s) if __isShortBlob     => new ShortBlob(Base64.decodeBase64(s))
+      case JString(s) if __isBlob          => new Blob(Base64.decodeBase64(s))
+      case JString(s) if __isSerializable  => Serialization.read(s)(formats, __manifest)
+      case JString(s)                      => s
+      case JInt(i) if (__isRating)         => new Rating(i.intValue)
+      case JInt(i)                         => i.longValue
+      case JArray(l)                       => l.map(__jvalueToScalaValue(_))
+      case JDouble(d)                      => d
+      case JNull if __isSeq                => Seq()
+      case JNull if __isOption             => None
+      case o: JObject if (__isGeoPt)       => jobjectToGeoPt(o)
+      case o: JObject if (__isUser)        => jobjectToUser(o)
+      case o: JObject if (__isIMHandle)    => jobjectToIMHandle(o)
+      case _ => println(value)
+    }
+  }
+
   override def toString = if (__valueOfProperty == null) "null" else __valueOfProperty.toString
 
   private def __valueClass = __manifest.erasure
@@ -61,6 +177,50 @@ class BaseProperty[T: Manifest](var __valueOfProperty: T) {
     out.writeObject(s)
     out.close()
     new Blob(ba.toByteArray)
+  }
+
+  private def propertyToJField(p: BaseProperty[_])(implicit formats: Formats) = JField(p.__nameOfProperty, valueToJValue(p.__valueOfProperty))
+
+  private def valueToJValue(value: Any)(implicit formats: Formats): JValue = {
+    def getptToJValue(g: GeoPt) =
+      ("latitude" -> g.getLatitude) ~
+      ("longitude" -> g.getLongitude)
+
+    def userToJValue(u: User) =
+      ("authDomain" -> u.getAuthDomain) ~
+      ("email" -> u.getEmail) ~
+      ("federatedIdentity" -> u.getFederatedIdentity) ~
+      ("userId" -> u.getUserId)
+
+    def imhandleToJValue(h: IMHandle) =
+      ("address" -> h.getAddress) ~
+      ("protocol" -> h.getProtocol)
+
+    value match {
+      case b: Boolean       => JBool(b)
+      case b: ShortBlob     => JString(Base64.encodeBase64String(b.getBytes))
+      case b: Blob          => JString(Base64.encodeBase64String(b.getBytes))
+      case c: Category      => JString(c.getCategory)
+      case d: Date          => JString(DefaultFormats.lossless.dateFormat.format(d))
+      case m: Email         => JString(m.getEmail)
+      case g: GeoPt         => getptToJValue(g)
+      case u: User          => userToJValue(u)
+      case l: Long          => JInt(l)
+      case d: Double        => JDouble(d)
+      case b: BlobKey       => JString(b.getKeyString)
+      case k: Key[_]        => JString(k.toWebSafeString)
+      case l: Link          => JString(l.getValue)
+      case h: IMHandle      => imhandleToJValue(h)
+      case a: PostalAddress => JString(a.getAddress)
+      case r: Rating        => JInt(r.getRating)
+      case n: PhoneNumber   => JString(n.getNumber)
+      case s: String        => JString(s)
+      case t: Text          => JString(t.getValue)
+      case l: Seq[_]        => JArray(l.toList map valueToJValue)
+      case Some(o)          => valueToJValue(o)
+      case None             => JNull
+      case s: Serializable  => Serialization.write(s)
+    }
   }
 }
 

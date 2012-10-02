@@ -1,12 +1,12 @@
 package com.github.hexx.gaeds
 
-import java.io.{ ByteArrayInputStream, ObjectInputStream }
 import java.lang.reflect.{ Field, Method }
 import java.util.concurrent.{ Future, TimeUnit }
 import scala.collection.JavaConverters._
 import scala.collection.mutable.Map
-import com.google.appengine.api.datastore.{ Blob, DatastoreServiceFactory, KeyFactory, Entity, FetchOptions, Transaction }
+import com.google.appengine.api.datastore.{ DatastoreServiceFactory, KeyFactory, Entity, FetchOptions, Transaction }
 import com.google.appengine.api.datastore.{ Key => LLKey }
+import net.liftweb.json._
 
 object Datastore {
   val service = DatastoreServiceFactory.getDatastoreService
@@ -101,61 +101,45 @@ object Datastore {
   def mapperCompanion[T <: Mapper[T]: ClassManifest]: T = companion.asInstanceOf[T]
 
   def createMapper[T <: Mapper[T]: ClassManifest](entity: Entity): T = {
-    def loadSerializable(b: Blob) = {
-      val in = new ObjectInputStream(new ByteArrayInputStream(b.getBytes))
-      val s = in.readObject.asInstanceOf[Serializable]
-      in.close()
-      s
-    }
-
-    def scalaValueOfProperty(p: BaseProperty[_], value: Any) = value match {
-      case l: java.util.ArrayList[_] =>
-        val l2 = l.asScala
-        if (p.__isContentKey) {
-          l2.asInstanceOf[Seq[LLKey]].map(Key(_)(p.__contentContentMapperManifest))
-        } else if (p.__isContentSerializable) {
-          l2.asInstanceOf[Seq[Blob]].map(loadSerializable)
-        } else {
-          l2
-        }
-      case null if p.__isSeq => Seq()
-      case k: LLKey if k != null && !p.__isOption => Key(k)(p.__contentMapperManifest)
-      case b: Blob if p.__isSerializable && !p.__isOption => loadSerializable(b)
-      case _ if p.__isOption =>
-        val o = Option(value)
-        if (p.__isContentKey) {
-          o.asInstanceOf[Option[LLKey]].map(Key(_)(p.__contentContentMapperManifest))
-        } else if (p.__isContentSerializable) {
-          o.asInstanceOf[Option[Blob]].map(loadSerializable)
-        } else {
-          o
-        }
-      case _ => value
-    }
-
-    def createPropertyAndSetToField(m: Mapper[_], f: Field, p: BaseProperty[_], v: Any) {
-      val manifest = p.__manifest.asInstanceOf[Manifest[Any]]
-      val p2 =
-        if (p.__isUnindexed) {
-          UnindexedProperty(v)(manifest)
-        } else {
-          Property(v)(manifest)
-        }
-      f.setAccessible(true)
-      f.set(m, p2)
-    }
-
     val concreteClass = implicitly[ClassManifest[T]].erasure
     val mapper = concreteClass.newInstance.asInstanceOf[T]
     for {
       (name, value) <- entity.getProperties.asScala
+      p <- Datastore.mapperCompanion.findProperty(name)
       field = concreteClass.getDeclaredField(name)
-      p = Datastore.mapperCompanion.findProperty(name).get
     } {
-      createPropertyAndSetToField(mapper, field, p, scalaValueOfProperty(p, value))
+      createPropertyAndSetToField(mapper, field, p, p.__llvalueToScalaValue(value))
     }
     mapper.key = Option(Key(entity.getKey))
     mapper
+  }
+
+  def createMapperFromJObject[T <: Mapper[T]: ClassManifest](jobject: JObject): T = {
+    val concreteClass = implicitly[ClassManifest[T]].erasure
+    val mapper = concreteClass.newInstance.asInstanceOf[T]
+    for {
+      JField(name, value) <- jobject.obj
+      p <- Datastore.mapperCompanion.findProperty(name)
+      field = concreteClass.getDeclaredField(name)
+    } {
+      createPropertyAndSetToField(mapper, field, p, p.__jvalueToScalaValue(value))
+    }
+    mapper.key = jobject.obj.find(_.name == "key") map { f =>
+      Key(KeyFactory stringToKey f.value.asInstanceOf[JString].s)
+    }
+    mapper
+  }
+
+  private def createPropertyAndSetToField(m: Mapper[_], f: Field, p: BaseProperty[_], v: Any) {
+    val manifest = p.__manifest.asInstanceOf[Manifest[Any]]
+    val p2 =
+      if (p.__isUnindexed) {
+        UnindexedProperty(v)(manifest)
+      } else {
+        Property(v)(manifest)
+      }
+    f.setAccessible(true)
+    f.set(m, p2)
   }
 
   // Transaction

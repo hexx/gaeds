@@ -1,7 +1,7 @@
 package com.github.hexx.gaeds
 
 import scala.collection.JavaConverters._
-import com.google.appengine.api.datastore.{ Key => LLKey, KeyRange => LLKeyRange }
+import com.google.appengine.api.datastore.{ KeyFactory, Key => LLKey, KeyRange => LLKeyRange }
 
 case class Key[T <: Mapper[T]: ClassManifest](val key: LLKey) extends Ordered[Key[T]] {
   assert(key != null)
@@ -19,8 +19,14 @@ case class Key[T <: Mapper[T]: ClassManifest](val key: LLKey) extends Ordered[Ke
   def encode = Datastore.keyToString(this)
   def builder = Datastore.keyBuilder(this)
 
+  def toWebSafeString = KeyFactory keyToString key
+
   override def toString = key.toString
   override def compare(that: Key[T]) = key compareTo that.key
+}
+
+object Key {
+  def fromWebSafeString[T <: Mapper[T]: ClassManifest](s: String) = Key(KeyFactory stringToKey s)
 }
 
 case class KeyRange[T <: Mapper[T]: ClassManifest](range: LLKeyRange) extends Iterable[Key[T]] {

@@ -2,6 +2,7 @@ package com.github.hexx.gaeds
 
 import java.lang.reflect.{ Field, Method }
 import com.google.appengine.api.datastore.{ Entity, FetchOptions, Transaction }
+import net.liftweb.json._
 
 abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T] {
   self: T =>
@@ -48,6 +49,18 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T
     entity
   }
 
+  def toJObject = {
+    assignPropertyName()
+    val keyField = key.map(k => JField("key", JString(k.toWebSafeString)))
+    JObject((keyField ++ properties.map(_.__jfieldOfProperty)).toList)
+  }
+
+  def toJson = compact(render(toJObject))
+
+  def fromJObject(jobject: JObject) = Datastore.createMapperFromJObject(jobject)
+
+  def fromJson(json: String) = parse(json).asInstanceOf[JObject]
+
   override def equals(that: Any) = that match {
     case that: Mapper[_] => that.key == key && that.properties == properties
     case _ => false
@@ -69,4 +82,5 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T
       p.__nameOfProperty = m.getName
     }
   }
+
 }

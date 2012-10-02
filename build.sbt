@@ -2,7 +2,7 @@ organization := "com.github.hexx"
 
 name := "gaeds"
 
-version := "0.1.1"
+version := "0.2.0"
 
 scalaVersion := "2.9.2"
 
@@ -48,9 +48,11 @@ pomExtra := (
 libraryDependencies ++= {
   val appengineVersion = "1.7.2"
   Seq(
+    "net.liftweb" %% "lift-json" % "2.5-M1",
     "com.google.appengine" % "appengine-api-1.0-sdk" % appengineVersion,
     "com.google.appengine" % "appengine-api-stubs"   % appengineVersion % "test",
     "com.google.appengine" % "appengine-testing"     % appengineVersion % "test",
+    "commons-codec" % "commons-codec" % "1.7",
     "org.scalatest" %% "scalatest" % "1.8" % "test"
   )
 }

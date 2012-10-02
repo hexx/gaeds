@@ -1,4 +1,4 @@
-import java.util.Date
+import java.util.{ Date, GregorianCalendar }
 
 import com.google.appengine.api.blobstore.BlobKey
 import com.google.appengine.api.datastore.{ Key => GAEKey, _ }
@@ -11,6 +11,7 @@ object Util {
   def stringToByteArray(s: String) = s.toArray.map(_.toByte)
   def createShortBlob(s: String) = new ShortBlob(stringToByteArray(s))
   def createBlob(s: String) = new Blob(stringToByteArray(s))
+  def date2012 = (new GregorianCalendar(2012, 0, 1)).getTime
 }
 
 case class Person(name: String, age: Long)
@@ -237,7 +238,7 @@ object SampleData {
       Util.createShortBlob("shortBlob"),
       Util.createBlob("blob"),
       new Category("category"),
-      new Date,
+      Util.date2012,
       new Email("email"),
       1.23,
       new GeoPt(1.23F, 1.23F),
@@ -260,7 +261,7 @@ object SampleData {
       Util.createShortBlob("shortBlob"),
       Util.createBlob("blob"),
       new Category("category"),
-      new Date,
+      Util.date2012,
       new Email("email"),
       1.23,
       new GeoPt(1.23F, 1.23F),
@@ -283,7 +284,7 @@ object SampleData {
       Seq(Util.createShortBlob("shortBlob1"), Util.createShortBlob("shortBlob2")),
       Seq(Util.createBlob("blob1"), Util.createBlob("blob2")),
       Seq(new Category("category1"), new Category("category2")),
-      Seq(new Date, new Date),
+      Seq(Util.date2012, Util.date2012),
       Seq(new Email("email1"), new Email("email2")),
       Seq(1.23D, 4.56D),
       Seq(new GeoPt(1.23F, 1.23F), new GeoPt(4.56F, 4.56F)),
@@ -329,7 +330,7 @@ object SampleData {
       Option(Util.createShortBlob("shortBlob")),
       Option(Util.createBlob("blob")),
       Option(new Category("category")),
-      Option(new Date),
+      Option(Util.date2012),
       Option(new Email("email")),
       Option(1.23D),
       Option(new GeoPt(1.23F, 1.23F)),
@@ -527,4 +528,17 @@ object SampleData {
     println(k.namespace)
     println(k.isComplete)
   }
+
+  def dataJson = """{"boolean":true,"long":123,"double":1.23,"date":"2012-01-01T00:00:00.000Z","text":"text","string":"string","user":{"authDomain":"gmail.com","email":"test@gmail.com","federatedIdentity":null,"userId":null},"keyValue":"agR0ZXN0cgoLEgREYXRhGAIM","shortBlob":"c2hvcnRCbG9i","blob":"YmxvYg==","category":"category","email":"email","geoPt":{"latitude":1.2300000190734863,"longitude":1.2300000190734863},"blobKey":"blobKey","link":"http://www.google.com/","imHandle":{"address":"imHandle","protocol":"sip"},"postalAddress":"postalAddress","rating":1,"phoneNumber":"0","person":"{\"name\":\"John\",\"age\":15}"}"""
 }
+
+class Message(
+    val name: Property[String],
+    val message: Property[String],
+    val date: Property[Date])
+  extends Mapper[Message] {
+  def this() = this(mock, mock, mock)
+  def this(name: String, message: String) = this(name, message, new Date)
+}
+
+object Message extends Message

@@ -13,6 +13,8 @@ import com.google.appengine.api.datastore.Query.SortDirection._
 import com.google.appengine.api.users.User
 import com.google.appengine.tools.development.testing.{ LocalDatastoreServiceTestConfig, LocalServiceTestHelper }
 
+import net.liftweb.json._
+
 import com.github.hexx.gaeds.{ Datastore, Mapper, Key }
 import com.github.hexx.gaeds.Property._
 
@@ -140,6 +142,12 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     }
     "put and get using allocated ids" in {
       putAndGetTest(data, Some(Data.allocateId))
+    }
+    "serialize to JSON" in {
+      compact(render(data.toJObject)) must be === dataJson
+      val d = data
+      val k = d.put
+      putAndGetCheck(k, d, Data.fromJObject(d.toJObject))
     }
   }
   "Mappers have Unindexed Properties" can {
