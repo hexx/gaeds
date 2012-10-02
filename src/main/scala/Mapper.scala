@@ -59,7 +59,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T
 
   def fromJObject(jobject: JObject) = Datastore.createMapperFromJObject(jobject)
 
-  def fromJson(json: String) = parse(json).asInstanceOf[JObject]
+  def fromJson(json: String) = fromJObject(parse(json).asInstanceOf[JObject])
 
   override def equals(that: Any) = that match {
     case that: Mapper[_] => that.key == key && that.properties == properties
