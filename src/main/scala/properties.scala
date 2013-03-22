@@ -1,16 +1,20 @@
 package com.github.hexx.gaeds
 
+import scala.language.existentials
+import scala.language.implicitConversions
+
 import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream }
 import java.util.Date
 import scala.collection.JavaConverters._
+import scala.reflect.ClassTag
 import com.google.appengine.api.blobstore.BlobKey
 import com.google.appengine.api.datastore.{ Blob, Category, Email, Entity, GeoPt, IMHandle }
 import com.google.appengine.api.datastore.{ Link, PhoneNumber, PostalAddress, Rating, ShortBlob, Text }
 import com.google.appengine.api.datastore.{ Key => LLKey }
 import com.google.appengine.api.datastore.Query.{ FilterOperator, SortDirection }
 import com.google.appengine.api.users.User
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
+import org.json4s._
+import org.json4s.JsonDSL._
 import org.apache.commons.codec.binary.Base64
 
 class BaseProperty[T: Manifest](var __valueOfProperty: T) {
@@ -151,7 +155,7 @@ class BaseProperty[T: Manifest](var __valueOfProperty: T) {
       case JString(s) if __isText          => new Text(s)
       case JString(s) if __isShortBlob     => new ShortBlob(Base64.decodeBase64(s))
       case JString(s) if __isBlob          => new Blob(Base64.decodeBase64(s))
-      case JString(s) if __isSerializable  => Serialization.read(s)(formats, __manifest)
+      case JString(s) if __isSerializable  => native.Serialization.read(s)(formats, __manifest)
       case JString(s)                      => s
       case JInt(i) if (__isRating)         => new Rating(i.intValue)
       case JInt(i)                         => i.longValue
@@ -168,8 +172,8 @@ class BaseProperty[T: Manifest](var __valueOfProperty: T) {
 
   override def toString = if (__valueOfProperty == null) "null" else __valueOfProperty.toString
 
-  private def __valueClass = __manifest.erasure
-  private def __contentClass = __contentManifest.erasure
+  private def __valueClass = __manifest.runtimeClass
+  private def __contentClass = __contentManifest.runtimeClass
 
   private def dumpToBlob(s: Serializable) = {
     val ba = new ByteArrayOutputStream
@@ -197,29 +201,29 @@ class BaseProperty[T: Manifest](var __valueOfProperty: T) {
       ("protocol" -> h.getProtocol)
 
     value match {
-      case b: Boolean       => JBool(b)
-      case b: ShortBlob     => JString(Base64.encodeBase64String(b.getBytes))
-      case b: Blob          => JString(Base64.encodeBase64String(b.getBytes))
-      case c: Category      => JString(c.getCategory)
-      case d: Date          => JString(DefaultFormats.lossless.dateFormat.format(d))
-      case m: Email         => JString(m.getEmail)
-      case g: GeoPt         => getptToJValue(g)
-      case u: User          => userToJValue(u)
-      case l: Long          => JInt(l)
-      case d: Double        => JDouble(d)
-      case b: BlobKey       => JString(b.getKeyString)
-      case k: Key[_]        => JString(k.toWebSafeString)
-      case l: Link          => JString(l.getValue)
-      case h: IMHandle      => imhandleToJValue(h)
-      case a: PostalAddress => JString(a.getAddress)
-      case r: Rating        => JInt(r.getRating)
-      case n: PhoneNumber   => JString(n.getNumber)
-      case s: String        => JString(s)
-      case t: Text          => JString(t.getValue)
-      case l: Seq[_]        => JArray(l.toList map valueToJValue)
-      case Some(o)          => valueToJValue(o)
-      case None             => JNull
-      case s: Serializable  => Serialization.write(s)
+      case b: Boolean                   => JBool(b)
+      case b: ShortBlob                 => JString(Base64.encodeBase64String(b.getBytes))
+      case b: Blob                      => JString(Base64.encodeBase64String(b.getBytes))
+      case c: Category                  => JString(c.getCategory)
+      case d: Date                      => JString(DefaultFormats.lossless.dateFormat.format(d))
+      case m: Email                     => JString(m.getEmail)
+      case g: GeoPt                     => getptToJValue(g)
+      case u: User                      => userToJValue(u)
+      case l: Long                      => JInt(l)
+      case d: Double                    => JDouble(d)
+      case b: BlobKey                   => JString(b.getKeyString)
+      case k: Key[_]                    => JString(k.toWebSafeString)
+      case l: Link                      => JString(l.getValue)
+      case h: IMHandle                  => imhandleToJValue(h)
+      case a: PostalAddress             => JString(a.getAddress)
+      case r: Rating                    => JInt(r.getRating)
+      case n: PhoneNumber               => JString(n.getNumber)
+      case s: String                    => JString(s)
+      case t: Text                      => JString(t.getValue)
+      case l: Seq[_]                    => JArray(l.toList map valueToJValue)
+      case Some(o)                      => valueToJValue(o)
+      case None                         => JNull
+      case s: Serializable with AnyRef  => native.Serialization.write(s)
     }
   }
 }
@@ -233,7 +237,7 @@ case class UnindexedProperty[T: Manifest](__valueOfPropertyArg: T) extends BaseP
 
 case class SortPredicate(property: BaseProperty[_], direction: SortDirection)
 
-case class PropertyOperator[T: ClassManifest](property: BaseProperty[T]) {
+case class PropertyOperator[T: ClassTag](property: BaseProperty[T]) {
   def #<(v: T) = FilterPredicate(property, FilterOperator.LESS_THAN, v)
   def #<=(v: T) = FilterPredicate(property, FilterOperator.LESS_THAN_OR_EQUAL, v)
   def #==(v: T) = FilterPredicate(property, FilterOperator.EQUAL, v)
@@ -377,5 +381,5 @@ object Property {
   implicit def textOptionValueToUnindexedProperty(value: Option[Text]) = UnindexedProperty(value)
   implicit def serializableOptionValueToUnindexedProperty[T <: Serializable: Manifest](value: Option[T]) = UnindexedProperty(value)
 
-  implicit def propertyToOperator[T: ClassManifest](property: BaseProperty[T]) = PropertyOperator(property)
+  implicit def propertyToOperator[T: ClassTag](property: BaseProperty[T]) = PropertyOperator(property)
 }

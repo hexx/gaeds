@@ -1,9 +1,12 @@
+import scala.language.postfixOps
+
 import org.scalatest.{ WordSpec, BeforeAndAfter }
 import org.scalatest.matchers.MustMatchers
 
 import java.util.Date
 
 import scala.collection.JavaConverters._
+import scala.reflect.ClassTag
 
 import com.google.appengine.api.blobstore.BlobKey
 import com.google.appengine.api.datastore.{ DatastoreServiceFactory, Entity, Query, Key => LLKey }
@@ -13,7 +16,7 @@ import com.google.appengine.api.datastore.Query.SortDirection._
 import com.google.appengine.api.users.User
 import com.google.appengine.tools.development.testing.{ LocalDatastoreServiceTestConfig, LocalServiceTestHelper }
 
-import net.liftweb.json._
+import org.json4s._
 
 import com.github.hexx.gaeds.{ Datastore, Mapper, Key }
 import com.github.hexx.gaeds.Property._
@@ -39,7 +42,7 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     d1.key.get must be === d2.key.get
     d1.toString must be === d2.toString
   }
-  def putAndGetTest[T <: Mapper[T]: ClassManifest](d1: T, key: Option[Key[T]] = None) = {
+  def putAndGetTest[T <: Mapper[T]: ClassTag](d1: T, key: Option[Key[T]] = None) = {
     val k = key match {
       case Some(k) => {
         d1.key = key
@@ -54,7 +57,7 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     checkUnindexedProperty(d2) must be === false
     Datastore.delete(k)
   }
-  def putAndGetTwiceTest[T <: Mapper[T]: ClassManifest](d1: T) = {
+  def putAndGetTwiceTest[T <: Mapper[T]: ClassTag](d1: T) = {
     val k1 = d1.put
     val d2 = Datastore.get(k1)
     val k2 = d2.put
@@ -62,7 +65,7 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     putAndGetCheck(k2, d1, d3)
     Datastore.delete(k1)
   }
-  def putAndGetUnindexedTest[T <: Mapper[T]: ClassManifest](d1: T) = {
+  def putAndGetUnindexedTest[T <: Mapper[T]: ClassTag](d1: T) = {
     val k = d1.put
     val d2 = Datastore.get(k)
     putAndGetCheck(k, d1, d2)
@@ -70,7 +73,7 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     checkUnindexedProperty(d2) must be === true
     Datastore.delete(k)
   }
-  def multiPutAndGetTest[T <: Mapper[T]: ClassManifest](ds1: T*) = {
+  def multiPutAndGetTest[T <: Mapper[T]: ClassTag](ds1: T*) = {
     val ks = Datastore.put(ds1:_*)
     val ds2 = Datastore.get(ks:_*).values.toSeq
     for (((k, d1), d2) <- ks zip ds1.sortBy(_.key.get) zip ds2.sortBy(_.key.get)) {
@@ -78,13 +81,13 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     }
     Datastore.delete(ks:_*)
   }
-  def updateTest[T <: Mapper[T]: ClassManifest](d1: T, update: T => T) = {
+  def updateTest[T <: Mapper[T]: ClassTag](d1: T, update: T => T) = {
     val k = update(d1).put
     val d2 = Datastore.get(k)
     putAndGetCheck(k, d1, d2)
     Datastore.delete(k)
   }
-  def updateTwiceTest[T <: Mapper[T]: ClassManifest](d1: T, update1: T => T, update2: T => T) = {
+  def updateTwiceTest[T <: Mapper[T]: ClassTag](d1: T, update1: T => T, update2: T => T) = {
     val k1 = update1(d1).put
     val d2 = Datastore.get(k1)
     val k2 = update2(d2).put
@@ -94,13 +97,13 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     putAndGetCheck(k3, d1, d4)
     Datastore.delete(k1)
   }
-  def putAndGetAsyncTest[T <: Mapper[T]: ClassManifest](d1: T) = {
+  def putAndGetAsyncTest[T <: Mapper[T]: ClassTag](d1: T) = {
     val k = d1.putAsync.get
     val d2 = Datastore.getAsync(k).get
     putAndGetCheck(k, d1, d2)
     Datastore.deleteAsync(k)
   }
-  def multiPutAndGetAsyncTest[T <: Mapper[T]: ClassManifest](ds1: T*) = {
+  def multiPutAndGetAsyncTest[T <: Mapper[T]: ClassTag](ds1: T*) = {
     val ks = Datastore.putAsync(ds1:_*).get
     val ds2 = Datastore.getAsync(ks:_*).get.values.toSeq
     for (((k, d1), d2) <- ks zip ds1.sortBy(_.key.get) zip ds2.sortBy(_.key.get)) {

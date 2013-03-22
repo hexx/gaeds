@@ -1,11 +1,12 @@
 package com.github.hexx.gaeds
 
 import scala.collection.JavaConverters._
+import scala.reflect.ClassTag
 import com.google.appengine.api.datastore.{ Cursor, FetchOptions, Index, Transaction }
 import com.google.appengine.api.datastore.{ Query => LLQuery }
 import com.google.appengine.api.datastore.Query.{ FilterOperator, SortDirection }
 
-class Query[T <: Mapper[T]: ClassManifest, U <: Mapper[U]](
+class Query[T <: Mapper[T]: ClassTag, U <: Mapper[U]](
     txn: Option[Transaction],
     mapper: T,
     ancestorKey: Option[Key[U]],

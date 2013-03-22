@@ -4,11 +4,9 @@ name := "gaeds"
 
 version := "0.2.0"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.10.1"
 
-crossScalaVersions := Seq("2.9.1", "2.9.1-1", "2.9.2")
-
-scalacOptions ++= Seq("-deprecation", "-unchecked")
+scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
 publishMavenStyle := true
 
@@ -16,8 +14,8 @@ publishArtifact in Test := false
 
 publishTo <<= version { (v: String) =>
   val nexus = "https://oss.sonatype.org/"
-  if (v.trim.endsWith("SNAPSHOT")) 
-    Some("snapshots" at nexus + "content/repositories/snapshots") 
+  if (v.trim.endsWith("SNAPSHOT"))
+    Some("snapshots" at nexus + "content/repositories/snapshots")
   else
     Some("releases"  at nexus + "service/local/staging/deploy/maven2")
 }
@@ -46,13 +44,13 @@ pomExtra := (
   </developers>)
 
 libraryDependencies ++= {
-  val appengineVersion = "1.7.2"
+  val appengineVersion = "1.7.5"
   Seq(
-    "net.liftweb" %% "lift-json" % "2.5-M1",
+    "org.json4s" %% "json4s-native" % "3.1.0",
     "com.google.appengine" % "appengine-api-1.0-sdk" % appengineVersion,
     "com.google.appengine" % "appengine-api-stubs"   % appengineVersion % "test",
     "com.google.appengine" % "appengine-testing"     % appengineVersion % "test",
     "commons-codec" % "commons-codec" % "1.7",
-    "org.scalatest" %% "scalatest" % "1.8" % "test"
+    "org.scalatest" %% "scalatest" % "1.9.1" % "test"
   )
 }

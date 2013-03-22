@@ -1,10 +1,12 @@
 package com.github.hexx.gaeds
 
 import java.lang.reflect.{ Field, Method }
+import scala.reflect.ClassTag
 import com.google.appengine.api.datastore.{ Entity, FetchOptions, Transaction }
-import net.liftweb.json._
+import org.json4s._
+import org.json4s.native.JsonMethods._
 
-abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T] {
+abstract class Mapper[T <: Mapper[T]: ClassTag] extends DatastoreDelegate[T] {
   self: T =>
 
   assignPropertyName()
@@ -13,7 +15,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T
 
   def kind = concreteClass.getName // override to customize
 
-  def concreteClass = implicitly[ClassManifest[T]].erasure
+  def concreteClass = implicitly[ClassTag[T]].runtimeClass
 
   def put() = Datastore.put(this)
   def put(txn: Transaction) = Datastore.put(txn, this)
@@ -66,7 +68,7 @@ abstract class Mapper[T <: Mapper[T]: ClassManifest] extends DatastoreDelegate[T
     case _ => false
   }
 
-  override val mapperClassManifest = implicitly[ClassManifest[T]]
+  override val mapperClassTag = implicitly[ClassTag[T]]
 
   private def zipPropertyAndMethod: Seq[(BaseProperty[_], Method)] = {
     def isGetter(m: Method) = !m.isSynthetic && classOf[BaseProperty[_]].isAssignableFrom(m.getReturnType)
