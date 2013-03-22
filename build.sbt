@@ -44,7 +44,7 @@ pomExtra := (
   </developers>)
 
 libraryDependencies ++= {
-  val appengineVersion = "1.7.5"
+  val appengineVersion = "1.7.6"
   Seq(
     "org.json4s" %% "json4s-native" % "3.1.0",
     "com.google.appengine" % "appengine-api-1.0-sdk" % appengineVersion,
