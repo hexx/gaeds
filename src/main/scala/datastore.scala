@@ -98,7 +98,7 @@ object Datastore {
   def query[T <: Mapper[T]: ClassTag, U <: Mapper[U]](txn: Transaction, mapper: T, ancestorKey: Key[U], fetchOptions: FetchOptions) =
     new Query(Some(txn), mapper, Some(ancestorKey), fetchOptions)
 
-  def companion[T: ClassTag]: Object = Class.forName(classTag.runtimeClass.getName + "$").getField("MODULE$").get()
+  def companion[T: ClassTag]: Object = Class.forName(classTag.runtimeClass.getName + "$").getField("MODULE$").get(())
   def mapperCompanion[T <: Mapper[T]: ClassTag]: T = companion.asInstanceOf[T]
 
   def createMapper[T <: Mapper[T]: ClassTag](entity: Entity): T = {

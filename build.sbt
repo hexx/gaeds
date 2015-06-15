@@ -4,7 +4,7 @@ name := "gaeds"
 
 version := "0.2.0"
 
-scalaVersion := "2.10.1"
+crossScalaVersions := Seq("2.10.1", "2.11.6")
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
@@ -44,13 +44,13 @@ pomExtra := (
   </developers>)
 
 libraryDependencies ++= {
-  val appengineVersion = "1.7.6"
+  val appengineVersion = "1.9.22"
   Seq(
-    "org.json4s" %% "json4s-native" % "3.1.0",
+    "org.json4s" %% "json4s-native" % "3.2.11",
     "com.google.appengine" % "appengine-api-1.0-sdk" % appengineVersion,
     "com.google.appengine" % "appengine-api-stubs"   % appengineVersion % "test",
     "com.google.appengine" % "appengine-testing"     % appengineVersion % "test",
-    "commons-codec" % "commons-codec" % "1.7",
-    "org.scalatest" %% "scalatest" % "1.9.1" % "test"
+    "commons-codec" % "commons-codec" % "1.10",
+    "org.scalatest" %% "scalatest" % "2.2.5" % "test"
   )
 }

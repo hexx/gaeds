@@ -1,7 +1,6 @@
 import scala.language.postfixOps
 
-import org.scalatest.{ WordSpec, BeforeAndAfter }
-import org.scalatest.matchers.MustMatchers
+import org.scalatest.{ WordSpec, BeforeAndAfter, MustMatchers }
 
 import java.util.Date
 
@@ -34,13 +33,13 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
 
   def putCheck[T <: Mapper[T]](k: Key[T], d: T) {
     k.id must not be 0
-    d.key.get must be === k
+    d.key.get must equal (k)
   }
   def putAndGetCheck[T <: Mapper[T]](k: Key[T], d1: T, d2: T) {
     putCheck(k, d1)
-    d1 must be === d2
-    d1.key.get must be === d2.key.get
-    d1.toString must be === d2.toString
+    d1 must equal (d2)
+    d1.key.get must equal (d2.key.get)
+    d1.toString must equal (d2.toString)
   }
   def putAndGetTest[T <: Mapper[T]: ClassTag](d1: T, key: Option[Key[T]] = None) = {
     val k = key match {
@@ -53,8 +52,8 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     }
     val d2 = Datastore.get(k)
     putAndGetCheck(k, d1, d2)
-    checkUnindexedProperty(d1) must be === false
-    checkUnindexedProperty(d2) must be === false
+    checkUnindexedProperty(d1) must equal (false)
+    checkUnindexedProperty(d2) must equal (false)
     Datastore.delete(k)
   }
   def putAndGetTwiceTest[T <: Mapper[T]: ClassTag](d1: T) = {
@@ -69,8 +68,8 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
     val k = d1.put
     val d2 = Datastore.get(k)
     putAndGetCheck(k, d1, d2)
-    checkUnindexedProperty(d1) must be === true
-    checkUnindexedProperty(d2) must be === true
+    checkUnindexedProperty(d1) must equal (true)
+    checkUnindexedProperty(d2) must equal (true)
     Datastore.delete(k)
   }
   def multiPutAndGetTest[T <: Mapper[T]: ClassTag](ds1: T*) = {
@@ -186,9 +185,9 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val k1 = d1.put
       val d2 = new KeyTestData(k1, Seq(k1), Option(k1))
       val e = d2.toEntity
-      e.getProperty("dataKey").asInstanceOf[LLKey] must be ===  k1.key
-      e.getProperty("dataKeys").asInstanceOf[java.util.List[LLKey]].get(0) must be ===  k1.key
-      e.getProperty("dataKeyOption").asInstanceOf[LLKey] must be ===  k1.key
+      e.getProperty("dataKey").asInstanceOf[LLKey] must equal ( k1.key)
+      e.getProperty("dataKeys").asInstanceOf[java.util.List[LLKey]].get(0) must equal ( k1.key)
+      e.getProperty("dataKeyOption").asInstanceOf[LLKey] must equal ( k1.key)
       val k2 = d2.put
       val d3 = k2.get
       val d4 = d3.dataKey.get
@@ -206,7 +205,7 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
         val k = d1.put
         val d2 = Data.query.asIterator.next
         val d3 = Data.query.asSingle
-        Data.query.count must be === 1
+        Data.query.count must equal (1)
         putAndGetCheck(k, d1, d2)
         putAndGetCheck(k, d1, d3)
         Datastore.delete(k)
@@ -216,25 +215,25 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
   "Queries" can {
     "filter and sort" in {
       Datastore.put(new Person2("John", 18), new Person2("Mike", 12), new Person2("Mary", 15))
-      Person2.query.filter(_.age #> 13).sort(_.age asc).count must be === 2
+      Person2.query.filter(_.age #> 13).sort(_.age asc).count must equal (2)
       val ite = Person2.query.filter(_.age #> 13).sort(_.age asc).asIterator
-      ite.next.age.__valueOfProperty must be === 15
-      ite.next.age.__valueOfProperty must be === 18
-      ite.hasNext must be === false
+      ite.next.age.__valueOfProperty must equal (15)
+      ite.next.age.__valueOfProperty must equal (18)
+      ite.hasNext must equal (false)
     }
     "use 'and' filter operator" in {
       Datastore.put(new Person2("John", 8), new Person2("Mike", 20), new Person2("Mary", 30), new Person2("Paul", 40))
       val ite = Person2.query.filter(p => p.age #> 10 and p.age #< 40).sort(_.age asc).asIterator
-      ite.next.age.__valueOfProperty must be === 20
-      ite.next.age.__valueOfProperty must be === 30
-      ite.hasNext must be === false
+      ite.next.age.__valueOfProperty must equal (20)
+      ite.next.age.__valueOfProperty must equal (30)
+      ite.hasNext must equal (false)
     }
     "use 'or' filter operator" in {
       Datastore.put(new Person2("John", 8), new Person2("Mike", 20), new Person2("Mary", 30), new Person2("Paul", 40))
       val ite = Person2.query.filter(p => p.age #< 10 or p.age #> 30).sort(_.age asc).asIterator
-      ite.next.age.__valueOfProperty must be === 8
-      ite.next.age.__valueOfProperty must be === 40
-      ite.hasNext must be === false
+      ite.next.age.__valueOfProperty must equal (8)
+      ite.next.age.__valueOfProperty must equal (40)
+      ite.hasNext must equal (false)
     }
   }
   "Queries" should {
@@ -244,8 +243,8 @@ class GaedsSpec extends WordSpec with BeforeAndAfter with MustMatchers {
       val ite1 = Data.query.asQueryResultIterator(false)
       val ite2 = Data.query.asIteratorWithCursorAndIndex
       for ((e, (d, c, i)) <- ite1.asScala zip ite2) {
-        ite1.getCursor must be === c()
-        Data.fromEntity(e) must be === d
+        ite1.getCursor must equal (c())
+        Data.fromEntity(e) must equal (d)
       }
     }
   }
